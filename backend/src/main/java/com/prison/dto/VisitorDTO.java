@@ -33,5 +33,8 @@ public class VisitorDTO {
     private Integer visitorCount;
     private String purpose;
     private Long approveGuardId;
+    private String approveRemark;
+    private String visitType;
     private String remark;
 }
+

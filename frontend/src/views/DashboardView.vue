@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { get } from '@/utils/request'
 
+const router = useRouter()
 const prisonerChart = ref<HTMLDivElement>()
 const cellChart = ref<HTMLDivElement>()
 const incidentChart = ref<HTMLDivElement>()
@@ -9,12 +12,18 @@ const patrolChart = ref<HTMLDivElement>()
 
 let charts: echarts.ECharts[] = []
 
-const statsCards = [
-  { label: '在押总人数', value: 1248, icon: 'UserFilled', color: '#409eff', unit: '人' },
-  { label: '在职警员', value: 86, icon: 'Avatar', color: '#67c23a', unit: '人' },
-  { label: '监舍总数', value: 48, icon: 'HomeFilled', color: '#e6a23c', unit: '间' },
-  { label: '本月事件', value: 15, icon: 'WarningFilled', color: '#f56c6c', unit: '起' }
-]
+const statsCards = ref([
+  { label: '在押总人数', value: 0, icon: 'UserFilled', color: '#409eff', unit: '人' },
+  { label: '在职警员', value: 0, icon: 'Avatar', color: '#67c23a', unit: '人' },
+  { label: '监舍使用率', value: '0', icon: 'HomeFilled', color: '#e6a23c', unit: '%' },
+  { label: '待处理事件', value: 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' }
+])
+
+const visitorStats = ref([
+  { label: '今日访客', value: 0, icon: 'User', color: '#409eff', unit: '人', route: '/visitors' },
+  { label: '待审核预约', value: 0, icon: 'Clock', color: '#e6a23c', unit: '条', route: '/visitors', highlight: true },
+  { label: '会见中', value: 0, icon: 'VideoPlay', color: '#67c23a', unit: '场', route: '/visitors' }
+])
 
 function initPrisonerChart() {
   if (!prisonerChart.value) return
@@ -129,7 +138,36 @@ function initPatrolChart() {
   charts.push(chart)
 }
 
+async function fetchDashboardData() {
+  try {
+    const res = await get('/dashboard')
+    if (res.data.code === 200) {
+      const data = res.data.data
+      statsCards.value = [
+        { label: '在押总人数', value: data.prisonerCount || 0, icon: 'UserFilled', color: '#409eff', unit: '人' },
+        { label: '在职警员', value: data.guardCount || 0, icon: 'Avatar', color: '#67c23a', unit: '人' },
+        { label: '监舍使用率', value: data.cellUsageRate || 0, icon: 'HomeFilled', color: '#e6a23c', unit: '%' },
+        { label: '待处理事件', value: data.pendingIncidentCount || 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' }
+      ]
+      visitorStats.value = [
+        { label: '今日访客', value: data.todayVisitorCount || 0, icon: 'User', color: '#409eff', unit: '人', route: '/visitors' },
+        { label: '待审核预约', value: data.pendingVisitorCount || 0, icon: 'Clock', color: '#e6a23c', unit: '条', route: '/visitors', highlight: true },
+        { label: '会见中', value: data.inProgressVisitorCount || 0, icon: 'VideoPlay', color: '#67c23a', unit: '场', route: '/visitors' }
+      ]
+    }
+  } catch (e) {
+    console.error('获取仪表盘数据失败', e)
+  }
+}
+
+function handleCardClick(route: string) {
+  if (route) {
+    router.push(route)
+  }
+}
+
 onMounted(async () => {
+  await fetchDashboardData()
   await nextTick()
   initPrisonerChart()
   initCellChart()
@@ -171,6 +209,35 @@ onBeforeUnmount(() => {
             <el-icon :size="28" color="#fff">
               <component :is="card.icon" />
             </el-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="visitor-section">
+      <h3 class="section-title">
+        <el-icon><User /></el-icon>
+        访客管理概览
+      </h3>
+      <div class="visitor-stats">
+        <div
+          v-for="card in visitorStats"
+          :key="card.label"
+          class="visitor-stat-card"
+          :class="{ highlight: card.highlight }"
+          @click="handleCardClick(card.route)"
+        >
+          <div class="visitor-stat-icon" :style="{ background: card.color }">
+            <el-icon :size="24" color="#fff">
+              <component :is="card.icon" />
+            </el-icon>
+          </div>
+          <div class="visitor-stat-info">
+            <span class="visitor-stat-value" :style="{ color: card.color }">{{ card.value }}</span>
+            <span class="visitor-stat-label">{{ card.label }}</span>
+          </div>
+          <div class="visitor-stat-arrow">
+            <el-icon><ArrowRight /></el-icon>
           </div>
         </div>
       </div>
@@ -292,8 +359,101 @@ onBeforeUnmount(() => {
   height: 320px;
 }
 
+.visitor-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visitor-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.visitor-stat-card {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafbfc;
+}
+
+.visitor-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.visitor-stat-card.highlight {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef0e4 100%);
+  border-color: #f5dab1;
+}
+
+.visitor-stat-card.highlight:hover {
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.25);
+}
+
+.visitor-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.visitor-stat-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.visitor-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.visitor-stat-label {
+  font-size: 13px;
+  color: #606266;
+  margin-top: 4px;
+}
+
+.visitor-stat-arrow {
+  color: #c0c4cc;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.visitor-stat-card:hover .visitor-stat-arrow {
+  color: #409eff;
+  transform: translateX(4px);
+  transition: all 0.3s ease;
+}
+
 @media (max-width: 1200px) {
   .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .visitor-stats {
     grid-template-columns: 1fr;
   }
 }

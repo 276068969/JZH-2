@@ -23,6 +23,11 @@ public class Visitor {
     private Integer visitorCount;
     private String purpose;
     private Long approveGuardId;
+    private String approveRemark;
+    private LocalDateTime approveTime;
+    private String visitType;
+    private LocalDateTime actualStartTime;
+    private LocalDateTime actualEndTime;
     private String remark;
 
     @TableField(fill = FieldFill.INSERT)

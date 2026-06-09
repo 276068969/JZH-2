@@ -1,14 +1,17 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
+ARG DOCKER_REGISTRY=docker.m.daocloud.io/library
+FROM ${DOCKER_REGISTRY}/maven:3.9-eclipse-temurin-17 AS build
+ARG MAVEN_MIRROR_URL
 
 WORKDIR /app
 
+COPY maven-settings.xml /tmp/maven-settings.xml
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+RUN mvn -s /tmp/maven-settings.xml dependency:go-offline -B -ntp
 
 COPY src ./src
-RUN mvn package -DskipTests -B
+RUN mvn -s /tmp/maven-settings.xml clean package -DskipTests -B -ntp
 
-FROM eclipse-temurin:17-jre-alpine
+FROM ${DOCKER_REGISTRY}/eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 

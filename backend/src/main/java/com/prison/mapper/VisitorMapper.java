@@ -10,4 +10,10 @@ public interface VisitorMapper extends BaseMapper<Visitor> {
 
     @Select("SELECT COUNT(*) FROM visitors WHERE visit_date = CURDATE() AND deleted = 0")
     Long countTodayVisitors();
+
+    @Select("SELECT COUNT(*) FROM visitors WHERE status = 'PENDING' AND deleted = 0")
+    Long countPendingVisitors();
+
+    @Select("SELECT COUNT(*) FROM visitors WHERE status = 'IN_PROGRESS' AND deleted = 0")
+    Long countInProgressVisitors();
 }

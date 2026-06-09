@@ -40,6 +40,8 @@ public class DashboardController {
         Long todayPatrolCount = patrolMapper.countTodayPatrols();
         Long pendingIncidentCount = incidentMapper.countPendingIncidents();
         Long todayVisitorCount = visitorMapper.countTodayVisitors();
+        Long pendingVisitorCount = visitorMapper.countPendingVisitors();
+        Long inProgressVisitorCount = visitorMapper.countInProgressVisitors();
 
         DashboardVO vo = DashboardVO.of(
                 prisonerCount,
@@ -47,7 +49,9 @@ public class DashboardController {
                 cellUsageRate,
                 todayPatrolCount != null ? todayPatrolCount : 0,
                 pendingIncidentCount != null ? pendingIncidentCount : 0,
-                todayVisitorCount != null ? todayVisitorCount : 0
+                todayVisitorCount != null ? todayVisitorCount : 0,
+                pendingVisitorCount != null ? pendingVisitorCount : 0,
+                inProgressVisitorCount != null ? inProgressVisitorCount : 0
         );
 
         return Result.success(vo);

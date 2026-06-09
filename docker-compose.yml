@@ -1,17 +1,14 @@
-version: '3.8'
-
 services:
   mysql:
-    image: mysql:8.0
-    container_name: prison-mysql
+    image: ${DOCKER_REGISTRY}/mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123456
-      MYSQL_DATABASE: prison_db
-      MYSQL_USER: prison
-      MYSQL_PASSWORD: prison123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:${MYSQL_PORT}:3306"
     volumes:
       - ./docker/mysql/data:/var/lib/mysql
       - ./docker/mysql/logs:/var/log/mysql
@@ -23,17 +20,17 @@ services:
     networks:
       - prison-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
-    image: redis:7-alpine
-    container_name: prison-redis
+    image: ${DOCKER_REGISTRY}/redis:7-alpine
     restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
       - ./docker/redis/data:/data
     networks:
@@ -43,19 +40,26 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: prison-backend
+      args:
+        DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+        MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL}
     restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/prison_db?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
-      SPRING_DATASOURCE_USERNAME: prison
-      SPRING_DATASOURCE_PASSWORD: prison123
-      JWT_SECRET: cHJpc29uLW1hbmFnZW1lbnQtcGxhdGZvcm0tc2VjcmV0LWtleS0yMDI0
-      JWT_EXPIRATION: 86400000
+      SERVER_PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${BACKEND_PORT}:8080"
     networks:
       - prison-network
 
@@ -63,12 +67,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: prison-frontend
+      args:
+        DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+        NPM_REGISTRY: ${NPM_REGISTRY}
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     ports:
-      - "80:80"
+      - "127.0.0.1:${FRONTEND_PORT}:80"
     networks:
       - prison-network
 

@@ -1,237 +1,144 @@
-# 监狱管理平台全栈 Web 应用开发 Prompt
+# Prison Management Platform
 
-请开发一个「监狱管理平台」全栈 Web 应用，包含后台管理端和前台业务端，支持通过 Docker 一键部署。系统面向监狱管理人员、狱警、医务人员、后勤人员等角色，用于提升监狱内部的信息化管理效率。
+This project uses a fixed local port plan, Docker-based deployment, domestic dependency mirrors, and Docker layer caching for repeatable builds without VPN.
 
-## 一、项目目标
+## Stack
 
-构建一个功能完整、界面清晰、安全可靠的监狱管理平台，覆盖服刑人员管理、警员管理、监舍管理、日常巡查、访客会见、医疗记录、事件上报、权限管理等核心业务。
+- Frontend: Vue 3 + Vite + TypeScript + Element Plus
+- Backend: Spring Boot 3 + Maven + Java 17
+- Database: MySQL 8
+- Middleware: Redis 7
+- Static hosting: Nginx
 
-系统需要包含：
+## Fixed Port Table
 
-- 前台业务端
-- 后台管理端
-- 用户登录与权限控制
-- 数据增删改查
-- Docker 部署支持
-- 基础测试账号
+All host ports are defined in the root `.env` file and exposed only on IPv4 loopback.
 
-## 二、核心特点
+| Service | Host address | Host port | Container port |
+|---|---|---:|---:|
+| Frontend | `127.0.0.1` | `3008` | `80` |
+| Backend | `127.0.0.1` | `8088` | `8080` |
+| MySQL | `127.0.0.1` | `3309` | `3306` |
+| Redis | `127.0.0.1` | `6380` | `6379` |
 
-### 1. 多角色权限管理
+The project does not auto-switch ports. If one of these ports is occupied, the startup script fails fast and reports the owning process.
 
-系统应支持不同用户角色访问不同功能，例如：
+## Environment File
 
-- 超级管理员
-- 监狱管理员
-- 狱警
-- 医务人员
-- 后勤人员
-- 普通查看人员
+The root `.env` file is the single source of truth for:
 
-不同角色登录后展示不同菜单和操作权限。
+- `DOCKER_REGISTRY`
+- `NPM_REGISTRY`
+- `MAVEN_MIRROR_URL`
+- `FRONTEND_PORT`
+- `BACKEND_PORT`
+- `MYSQL_PORT`
+- `REDIS_PORT`
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `JWT_SECRET`
+- `JWT_EXPIRATION`
 
-### 2. 服刑人员管理
+## Domestic Mirrors
 
-支持对服刑人员进行统一管理，包括：
+The Docker build now uses these mirror controls:
 
-- 基本信息
-- 编号
-- 性别
-- 年龄
-- 所属监区
-- 所属监舍
-- 刑期信息
-- 入狱日期
-- 状态管理
-- 档案查看
+- Base images: `${DOCKER_REGISTRY}`
+- npm packages: `${NPM_REGISTRY}`
+- Maven dependencies: `${MAVEN_MIRROR_URL}`
 
-### 3. 警员与工作人员管理
+No `# syntax=docker/dockerfile:*` directive is used.
 
-支持管理监狱内部工作人员信息，包括：
+## Docker Cache Strategy
 
-- 姓名
-- 工号
-- 职务
-- 所属部门
-- 联系方式
-- 在职状态
-- 角色权限
+The Dockerfiles are arranged so dependency downloads stay cached unless dependency manifests change.
 
-### 4. 监区与监舍管理
+Frontend cache boundary:
 
-支持管理监狱空间结构：
+- `package.json`
+- `package-lock.json`
 
-- 监区管理
-- 监舍管理
-- 容量设置
-- 当前人数统计
-- 服刑人员分配
-- 监舍状态
+Backend cache boundary:
 
-### 5. 日常巡查管理
+- `pom.xml`
+- `maven-settings.xml`
 
-支持狱警记录日常巡查情况：
+Effect:
 
-- 巡查时间
-- 巡查区域
-- 巡查人员
-- 异常情况
-- 处理结果
-- 巡查记录查询
+- First build downloads dependencies.
+- Re-running `docker compose up --build -d` reuses cached dependency layers when manifests are unchanged.
+- Editing only business source code recompiles the project without re-downloading npm or Maven dependencies.
 
-### 6. 事件上报与处理
+## Start
 
-支持记录和处理监狱内部事件：
+Use the provided PowerShell script:
 
-- 事件类型
-- 发生时间
-- 发生地点
-- 涉及人员
-- 事件描述
-- 处理状态
-- 处理结果
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\docker-up.ps1
+```
 
-### 7. 访客会见管理
+What the script does:
 
-支持访客预约和会见记录管理：
+1. Loads the root `.env`.
+2. Verifies the fixed ports are free.
+3. Runs `docker compose up --build -d`.
+4. Waits for both `http://127.0.0.1:<FRONTEND_PORT>` and `http://localhost:<FRONTEND_PORT>`.
+5. Compares their HTML head output and fails if they are different.
+6. Prints the frontend access address.
 
-- 访客信息
-- 被探视人员
-- 预约时间
-- 会见状态
-- 审核状态
-- 会见记录
+## Manual Commands
 
-### 8. 医疗管理
+If you want to run the checks manually:
 
-支持医务人员维护基础医疗记录：
+```powershell
+docker compose up --build -d
+Get-NetTCPConnection -State Listen -LocalPort 3008,8088,3309,6380 | Select-Object LocalAddress,LocalPort,OwningProcess
+curl.exe -sS http://127.0.0.1:3008 | Select-Object -First 20
+curl.exe -sS http://localhost:3008 | Select-Object -First 20
+```
 
-- 就诊记录
-- 病情描述
-- 用药记录
-- 医生信息
-- 复诊状态
+On systems with WSL and `lsof` available:
 
-### 9. 数据看板
+```powershell
+wsl.exe bash -lc "lsof -nP -iTCP:3008 -sTCP:LISTEN"
+wsl.exe bash -lc "lsof -nP -iTCP:8088 -sTCP:LISTEN"
+wsl.exe bash -lc "lsof -nP -iTCP:3309 -sTCP:LISTEN"
+wsl.exe bash -lc "lsof -nP -iTCP:6380 -sTCP:LISTEN"
+```
 
-后台首页需要提供基础数据统计，例如：
+## Frontend Dev Server Rules
 
-- 当前在押人数
-- 警员数量
-- 监舍使用率
-- 今日巡查次数
-- 待处理事件数量
-- 今日访客预约数量
+`frontend/vite.config.ts` now enforces:
 
-## 三、技术选型
+- `server.host = "127.0.0.1"`
+- `server.port = FRONTEND_PORT`
+- `server.strictPort = true`
+- `preview.host = "127.0.0.1"`
+- `preview.port = FRONTEND_PORT`
+- `preview.strictPort = true`
 
-### 前端
+The frontend proxy targets `http://127.0.0.1:${BACKEND_PORT}`.
 
-建议使用：
+## Test Accounts
 
-- Vue 3
-- TypeScript
-- Vite
-- Element Plus
-- Pinia
-- Vue Router
-- Axios
-- ECharts
+The backend initializes passwords for these accounts at startup:
 
-### 后端
+| Role | Username | Password |
+|---|---|---|
+| Admin | `admin` | `Admin@123456` |
+| Manager | `manager` | `Manager@123456` |
+| Guard | `guard` | `Guard@123456` |
+| Doctor | `doctor` | `Doctor@123456` |
+| Viewer | `viewer` | `Viewer@123456` |
 
-建议使用：
+## Access Address
 
-- Java 17
-- Spring Boot 3
-- Spring Security
-- MyBatis Plus
-- JWT 认证
-- RESTful API
-
-### 数据库
-
-建议使用：
-
-- MySQL 8
-
-### 缓存
-
-可选：
-
-- Redis
-
-### 部署
-
-使用 Docker 进行部署，包含：
-
-- 前端服务
-- 后端服务
-- MySQL 数据库
-- Redis 服务，可选
-- docker-compose.yml
-
-## 四、系统模块
-
-系统至少包含以下模块：
-
-- 登录模块
-- 首页数据看板
-- 用户管理
-- 角色管理
-- 权限管理
-- 服刑人员管理
-- 警员管理
-- 监区管理
-- 监舍管理
-- 巡查管理
-- 事件管理
-- 访客管理
-- 医疗记录管理
-- 系统日志管理
-
-## 五、测试账号规定
-
-系统初始化时需要提供以下测试账号：
-
-| 角色 | 账号 | 密码 | 说明 |
-|---|---|---|---|
-| 超级管理员 | admin | Admin@123456 | 拥有全部权限 |
-| 监狱管理员 | manager | Manager@123456 | 管理大部分业务模块 |
-| 狱警 | guard | Guard@123456 | 可管理巡查、事件、服刑人员相关信息 |
-| 医务人员 | doctor | Doctor@123456 | 可管理医疗记录 |
-| 普通查看人员 | viewer | Viewer@123456 | 仅可查看基础数据 |
-
-## 六、页面要求
-
-前端需要包含：
-
-- 登录页
-- 后台布局页
-- 左侧菜单栏
-- 顶部用户信息栏
-- 数据看板页
-- 各业务模块列表页
-- 新增 / 编辑弹窗或页面
-- 详情页
-- 搜索和筛选功能
-- 分页功能
-
-整体风格应偏政务、严肃、简洁、清晰，适合内部管理系统使用。
-
-## 七、Docker 部署要求
-
-项目需要支持 Docker 部署，至少包含：
-
-- 前端 Dockerfile
-- 后端 Dockerfile
-- docker-compose.yml
-- MySQL 初始化脚本
-- 环境变量配置示例
-
-启动后应可以通过浏览器访问系统。
-
-示例访问地址：
+After a successful build, open:
 
 ```text
-http://localhost:8080
+http://localhost:3008
+```
+
+The script also verifies that `http://127.0.0.1:3008` returns the same page.
