@@ -313,11 +313,6 @@ function formatDate(dateStr: string) {
   return dateStr
 }
 
-function formatDateTime(dateTimeStr: string) {
-  if (!dateTimeStr) return '-'
-  return dateTimeStr.replace('T', ' ').substring(0, 16)
-}
-
 onMounted(() => {
   fetchList()
   fetchStatistics()
