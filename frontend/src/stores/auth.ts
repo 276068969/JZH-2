@@ -37,9 +37,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username: string, password: string) {
     const res = await post('/auth/login', { username, password })
-    const { token: jwt, user } = res.data
-    setToken(jwt)
-    setUserInfo(user)
+    const data = res.data.data
+    setToken(data.token)
+    setUserInfo({
+      id: data.id,
+      username: data.username,
+      realName: data.realName,
+      role: data.role,
+      roles: data.roles
+    })
     return res
   }
 

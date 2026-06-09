@@ -37,16 +37,16 @@ async function handleLogin() {
       id: 1,
       username: 'admin',
       realName: '系统管理员',
-      role: '超级管理员',
-      roles: ['ADMIN']
+      role: 'ROLE_ADMIN',
+      roles: ['ROLE_ADMIN']
     }))
     authStore.setToken('mock-jwt-token-demo')
     authStore.setUserInfo({
       id: 1,
       username: 'admin',
       realName: '系统管理员',
-      role: '超级管理员',
-      roles: ['ADMIN']
+      role: 'ROLE_ADMIN',
+      roles: ['ROLE_ADMIN']
     })
     ElMessage.success('演示模式登录成功')
     router.push('/dashboard')

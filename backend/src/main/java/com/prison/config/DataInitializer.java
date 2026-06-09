@@ -30,11 +30,11 @@ public class DataInitializer implements CommandLineRunner {
         for (User user : users) {
             if (!user.getPassword().startsWith("$2a$")) {
                 String rawPassword = switch (user.getUsername()) {
-                    case "admin" -> "Admin@123456";
-                    case "manager" -> "Manager@123456";
-                    case "guard" -> "Guard@123456";
-                    case "doctor" -> "Doctor@123456";
-                    case "viewer" -> "Viewer@123456";
+                    case "admin" -> "admin123";
+                    case "manager" -> "manager123";
+                    case "guard" -> "guard123";
+                    case "doctor" -> "doctor123";
+                    case "viewer" -> "viewer123";
                     default -> null;
                 };
                 if (rawPassword != null) {

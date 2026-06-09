@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -45,11 +47,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole());
 
         return LoginResponse.builder()
+                .id(user.getId())
                 .token(token)
                 .tokenType("Bearer")
                 .username(user.getUsername())
                 .realName(user.getRealName())
                 .role(user.getRole())
+                .roles(Collections.singletonList(user.getRole()))
                 .build();
     }
 
