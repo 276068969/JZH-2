@@ -1,0 +1,67 @@
+package com.prison.controller;
+
+import com.prison.Result;
+import com.prison.dto.CellDTO;
+import com.prison.entity.Cell;
+import com.prison.service.CellService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/cells")
+@RequiredArgsConstructor
+public class CellController {
+
+    private final CellService cellService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<?> list(@RequestParam(defaultValue = "1") int page,
+                          @RequestParam(defaultValue = "10") int size,
+                          @RequestParam(required = false) String keyword) {
+        return Result.success(cellService.pageCells(page, size, keyword));
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<List<Cell>> all() {
+        return Result.success(cellService.list());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<Cell> getById(@PathVariable Long id) {
+        return Result.success(cellService.getById(id));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> create(@Valid @RequestBody CellDTO dto) {
+        Cell cell = new Cell();
+        BeanUtils.copyProperties(dto, cell);
+        cellService.save(cell);
+        return Result.success("创建成功");
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> update(@PathVariable Long id, @Valid @RequestBody CellDTO dto) {
+        Cell cell = new Cell();
+        BeanUtils.copyProperties(dto, cell);
+        cell.setId(id);
+        cellService.updateById(cell);
+        return Result.success("更新成功");
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<?> delete(@PathVariable Long id) {
+        cellService.removeById(id);
+        return Result.success("删除成功");
+    }
+}

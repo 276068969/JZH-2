@@ -1,0 +1,67 @@
+package com.prison.controller;
+
+import com.prison.Result;
+import com.prison.dto.PrisonerDTO;
+import com.prison.entity.Prisoner;
+import com.prison.service.PrisonerService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/prisoners")
+@RequiredArgsConstructor
+public class PrisonerController {
+
+    private final PrisonerService prisonerService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<?> list(@RequestParam(defaultValue = "1") int page,
+                          @RequestParam(defaultValue = "10") int size,
+                          @RequestParam(required = false) String keyword) {
+        return Result.success(prisonerService.pagePrisoners(page, size, keyword));
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<List<Prisoner>> all() {
+        return Result.success(prisonerService.list());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'DOCTOR', 'VIEWER')")
+    public Result<Prisoner> getById(@PathVariable Long id) {
+        return Result.success(prisonerService.getById(id));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> create(@Valid @RequestBody PrisonerDTO dto) {
+        Prisoner prisoner = new Prisoner();
+        BeanUtils.copyProperties(dto, prisoner);
+        prisonerService.save(prisoner);
+        return Result.success("创建成功");
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> update(@PathVariable Long id, @Valid @RequestBody PrisonerDTO dto) {
+        Prisoner prisoner = new Prisoner();
+        BeanUtils.copyProperties(dto, prisoner);
+        prisoner.setId(id);
+        prisonerService.updateById(prisoner);
+        return Result.success("更新成功");
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<?> delete(@PathVariable Long id) {
+        prisonerService.removeById(id);
+        return Result.success("删除成功");
+    }
+}
