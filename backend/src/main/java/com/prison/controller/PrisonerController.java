@@ -2,6 +2,7 @@ package com.prison.controller;
 
 import com.prison.Result;
 import com.prison.dto.PrisonerDTO;
+import com.prison.dto.PrisonerQueryDTO;
 import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 import com.prison.service.PrisonerService;
@@ -26,6 +27,12 @@ public class PrisonerController {
                           @RequestParam(defaultValue = "10") int size,
                           @RequestParam(required = false) String keyword) {
         return Result.success(prisonerService.pagePrisoners(page, size, keyword));
+    }
+
+    @PostMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<?> advancedSearch(@RequestBody PrisonerQueryDTO queryDTO) {
+        return Result.success(prisonerService.advancedSearch(queryDTO));
     }
 
     @GetMapping("/all")
