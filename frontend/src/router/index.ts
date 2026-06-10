@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '服刑人员管理', icon: 'UserFilled' }
       },
       {
+        path: 'release-warnings',
+        name: 'ReleaseWarnings',
+        component: () => import('@/views/ReleaseWarning.vue'),
+        meta: { title: '临释人员预警', icon: 'Warning' }
+      },
+      {
         path: 'guards',
         name: 'Guards',
         component: () => import('@/views/GuardList.vue'),

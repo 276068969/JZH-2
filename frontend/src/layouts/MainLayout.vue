@@ -56,6 +56,7 @@ const iconMap: Record<string, string> = {
   'HomeFilled': 'HomeFilled',
   'AlarmClock': 'AlarmClock',
   'WarningFilled': 'WarningFilled',
+  'Warning': 'Warning',
   'User': 'User',
   'FirstAidKit': 'FirstAidKit',
   'Management': 'Management',

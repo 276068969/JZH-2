@@ -2,6 +2,7 @@ package com.prison.controller;
 
 import com.prison.Result;
 import com.prison.dto.PrisonerDTO;
+import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 import com.prison.service.PrisonerService;
 import jakarta.validation.Valid;
@@ -37,6 +38,15 @@ public class PrisonerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'DOCTOR', 'VIEWER')")
     public Result<Prisoner> getById(@PathVariable Long id) {
         return Result.success(prisonerService.getById(id));
+    }
+
+    @GetMapping("/release-warnings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<List<ReleaseWarningVO>> releaseWarnings(
+            @RequestParam(required = false) Integer days,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dangerLevel) {
+        return Result.success(prisonerService.getReleaseWarnings(days, status, dangerLevel));
     }
 
     @PostMapping
