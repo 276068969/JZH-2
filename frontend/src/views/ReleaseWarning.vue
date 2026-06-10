@@ -162,7 +162,7 @@ const currentPrisoners = computed(() => {
 const daysTagMap: Record<number, { text: string; type: string }> = {
   30: { text: '30天内', type: 'danger' },
   60: { text: '60天内', type: 'warning' },
-  90: { text: '90天内', type: '' }
+  90: { text: '90天内', type: 'primary' }
 }
 
 function getPrisonerDaysTag(prisoner: Prisoner) {
@@ -335,7 +335,7 @@ onMounted(() => {
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-tag
-            :type="row.status === 'INCARCERATED' ? '' : row.status === 'TRANSFERRED' ? 'warning' : 'success'"
+            :type="row.status === 'INCARCERATED' ? 'primary' : row.status === 'TRANSFERRED' ? 'warning' : 'success'"
             size="small"
           >
             {{ statusMap[row.status] || row.status || '-' }}
