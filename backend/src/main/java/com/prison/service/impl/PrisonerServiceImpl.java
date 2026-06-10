@@ -7,6 +7,7 @@ import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 import com.prison.mapper.PrisonerMapper;
 import com.prison.service.PrisonerService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> implements PrisonerService {
 
@@ -69,6 +71,9 @@ public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> i
         wrapper.orderByAsc(Prisoner::getReleaseDate);
 
         List<Prisoner> prisoners = list(wrapper);
+
+        log.info("临释预警查询: {}天, today={}, endDate={}, status={}, dangerLevel={}, 匹配人数={}",
+                days, today, endDate, status, dangerLevel, prisoners.size());
 
         String label = days + "天内临释人员";
         return new ReleaseWarningVO(days, label, prisoners.size(), prisoners);
