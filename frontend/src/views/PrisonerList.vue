@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { post, get, del, put } from '@/utils/request'
 
 interface Prisoner {
   id: number
