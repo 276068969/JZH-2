@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { get } from '@/utils/request'
 
 interface Prisoner {
