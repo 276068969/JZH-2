@@ -116,8 +116,15 @@ async function handleSubmit() {
           <el-col :span="12"><el-form-item label="所属监区"><el-input v-model="form.areaName" /></el-form-item></el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12"><el-form-item label="容量"><el-input-number v-model="form.capacity" :min="1" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="当前人数"><el-input-number v-model="form.currentCount" :min="0" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="容量"><el-input-number v-model="form.capacity" :min="1" style="width: 100%" /></el-form-item></el-col>
+          <el-col :span="12">
+            <el-form-item label="当前人数">
+              <div class="readonly-count">
+                <span class="count-num">{{ form.currentCount }}</span>
+                <span class="count-tip">人（系统自动统计）</span>
+              </div>
+            </el-form-item>
+          </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12"><el-form-item label="类型"><el-input v-model="form.cellType" /></el-form-item></el-col>
@@ -139,4 +146,25 @@ async function handleSubmit() {
 .search-bar { display: flex; gap: 12px; margin-bottom: 16px; }
 .search-input { width: 260px; }
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+.readonly-count {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0 11px;
+  height: 32px;
+  line-height: 32px;
+  background: #f5f7fa;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+}
+.readonly-count .count-num {
+  font-size: 16px;
+  font-weight: 600;
+  color: #409eff;
+}
+.readonly-count .count-tip {
+  font-size: 12px;
+  color: #909399;
+}
 </style>

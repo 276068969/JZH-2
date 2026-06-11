@@ -36,17 +36,15 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
     @Override
     @Transactional
     public void createCell(Cell cell) {
-        if (cell.getCurrentOccupancy() == null) {
-            cell.setCurrentOccupancy(0);
-        }
-        if (cell.getStatus() == null) {
+        cell.setCurrentOccupancy(0);
+        if (!StringUtils.hasText(cell.getStatus())) {
             cell.setStatus("AVAILABLE");
         }
-        if (cell.getCurrentOccupancy() > cell.getCapacity()) {
-            throw new BusinessException("当前入住人数(" + cell.getCurrentOccupancy() + ")不能超过容量(" + cell.getCapacity() + ")");
+        if (cell.getCapacity() == null || cell.getCapacity() < 1) {
+            throw new BusinessException("监舍容量不能小于1");
         }
-        if (cell.getCurrentOccupancy() >= cell.getCapacity()) {
-            cell.setStatus("FULL");
+        if ("ISOLATION".equals(cell.getCellType()) && cell.getCapacity() != 1) {
+            cell.setCapacity(1);
         }
         save(cell);
     }
@@ -59,28 +57,44 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
             throw new BusinessException("监舍不存在");
         }
 
+        int realCount = prisonerMapper.countByCellId(id);
+
         if (cell.getCapacity() != null) {
             if (cell.getCapacity() < 1) {
                 throw new BusinessException("监舍容量不能小于1");
             }
-            int currentOccupancy = existing.getCurrentOccupancy();
-            if (cell.getCapacity() < currentOccupancy) {
-                throw new BusinessException("容量(" + cell.getCapacity() + ")不能小于当前入住人数(" + currentOccupancy + ")");
+            if (cell.getCapacity() < realCount) {
+                throw new BusinessException("容量(" + cell.getCapacity() + ")不能小于实际在押人数(" + realCount + "人)");
+            }
+            existing.setCapacity(cell.getCapacity());
+        }
+
+        if (StringUtils.hasText(cell.getStatus())) {
+            if ("MAINTENANCE".equals(cell.getStatus()) && realCount > 0) {
+                throw new BusinessException("监舍内仍有实际在押人员(" + realCount + "人)，无法设置为维护中状态");
+            }
+            existing.setStatus(cell.getStatus());
+        }
+
+        if (StringUtils.hasText(cell.getCellNumber())) {
+            existing.setCellNumber(cell.getCellNumber());
+        }
+        if (cell.getAreaId() != null) {
+            existing.setAreaId(cell.getAreaId());
+        }
+        if (StringUtils.hasText(cell.getCellType())) {
+            existing.setCellType(cell.getCellType());
+            if ("ISOLATION".equals(cell.getCellType()) && existing.getCapacity() > 1) {
+                if (realCount > 1) {
+                    throw new BusinessException("该监舍实际在押(" + realCount + "人)，无法改为隔离监舍(隔离监舍仅容纳1人)");
+                }
+                existing.setCapacity(1);
             }
         }
 
-        if (cell.getStatus() != null) {
-            if ("MAINTENANCE".equals(cell.getStatus()) && existing.getCurrentOccupancy() > 0) {
-                throw new BusinessException("监舍内仍有在押人员(" + existing.getCurrentOccupancy() + "人)，无法设置为维护中状态");
-            }
-        }
+        updateById(existing);
 
-        cell.setId(id);
-        updateById(cell);
-
-        Cell updated = getById(id);
-        refreshCellStatus(updated);
-        updateById(updated);
+        syncOccupancy(id);
     }
 
     @Override
@@ -90,9 +104,9 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
         if (cell == null) {
             throw new BusinessException("监舍不存在");
         }
-        int prisonerCount = prisonerMapper.countByCellId(id);
-        if (prisonerCount > 0) {
-            throw new BusinessException("监舍内仍有在押人员(" + prisonerCount + "人)，无法删除");
+        int realCount = prisonerMapper.countByCellId(id);
+        if (realCount > 0) {
+            throw new BusinessException("监舍内仍有实际在押人员(" + realCount + "人)，无法删除");
         }
         removeById(id);
     }
@@ -125,22 +139,7 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
     @Override
     @Transactional
     public void incrementOccupancy(Long cellId) {
-        Cell cell = getById(cellId);
-        if (cell == null) {
-            throw new BusinessException("监舍不存在");
-        }
-        if ("MAINTENANCE".equals(cell.getStatus())) {
-            throw new BusinessException("监舍[" + cell.getCellNumber() + "]处于维护中，无法分配人员");
-        }
-        if ("ISOLATION".equals(cell.getCellType()) && cell.getCurrentOccupancy() >= 1) {
-            throw new BusinessException("隔离监舍[" + cell.getCellNumber() + "]只能关押1人，当前已满员");
-        }
-        if (cell.getCurrentOccupancy() >= cell.getCapacity()) {
-            throw new BusinessException("监舍[" + cell.getCellNumber() + "]已满员(容量:" + cell.getCapacity() + ")，无法继续分配");
-        }
-        cell.setCurrentOccupancy(cell.getCurrentOccupancy() + 1);
-        refreshCellStatus(cell);
-        updateById(cell);
+        syncOccupancy(cellId);
     }
 
     @Override
@@ -150,12 +149,7 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
         if (cell == null) {
             return;
         }
-        if (cell.getCurrentOccupancy() <= 0) {
-            return;
-        }
-        cell.setCurrentOccupancy(cell.getCurrentOccupancy() - 1);
-        refreshCellStatus(cell);
-        updateById(cell);
+        syncOccupancy(cellId);
     }
 
     @Override
@@ -164,14 +158,16 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
         if (cell == null) {
             throw new BusinessException("监舍不存在");
         }
+        int realCount = prisonerMapper.countByCellId(cellId);
+
         if ("MAINTENANCE".equals(cell.getStatus())) {
             throw new BusinessException("监舍[" + cell.getCellNumber() + "]处于维护中，无法分配人员");
         }
-        if ("ISOLATION".equals(cell.getCellType()) && cell.getCurrentOccupancy() >= 1) {
-            throw new BusinessException("隔离监舍[" + cell.getCellNumber() + "]只能关押1人，当前已满员");
+        if ("ISOLATION".equals(cell.getCellType()) && realCount >= 1) {
+            throw new BusinessException("隔离监舍[" + cell.getCellNumber() + "]只能关押1人，当前实际在押" + realCount + "人，已满员");
         }
-        if (cell.getCurrentOccupancy() >= cell.getCapacity()) {
-            throw new BusinessException("监舍[" + cell.getCellNumber() + "]已满员(容量:" + cell.getCapacity() + ")，无法继续分配");
+        if (realCount >= cell.getCapacity()) {
+            throw new BusinessException("监舍[" + cell.getCellNumber() + "]已满员(容量:" + cell.getCapacity() + "，实际在押:" + realCount + "人)，无法继续分配");
         }
     }
 

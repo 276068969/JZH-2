@@ -18,6 +18,5 @@ public class CellDTO {
     @NotNull(message = "容量不能为空")
     private Integer capacity;
 
-    private Integer currentOccupancy;
     private String status;
 }
