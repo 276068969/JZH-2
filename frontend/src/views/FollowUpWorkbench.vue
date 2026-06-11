@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import { ElMessage, type FormInstance } from 'element-plus'
 
 interface FollowUpRecord {
   id: number
@@ -268,16 +268,13 @@ const resultMap: Record<string, string> = {
   DECEASED: '已故'
 }
 
-const prisonerStatusMap: Record<string, string> = {
-  INCARCERATED: '在押',
-  RELEASED: '已释放',
-  TRANSFERRED: '转监',
-  MEDICAL_PAROLE: '保外就医'
-}
-
 const currentPage = ref(1)
 const pageSize = ref(10)
 const activeFilter = ref<string | null>(null)
+
+function getRowClassName({ row }: { row: FollowUpRecord }) {
+  return row.isKeyAttention ? 'key-row' : ''
+}
 
 const summaryCards = computed(() => [
   { key: 'TODAY', label: '今日待复诊', color: '#f56c6c', icon: 'Clock', count: stats.value.todayPending, desc: '今日需处理' },
@@ -627,7 +624,7 @@ onMounted(() => {
       stripe
       style="width:100%"
       empty-text="暂无符合条件的复诊记录"
-      :row-class-name="({ row }) => row.isKeyAttention ? 'key-row' : ''"
+      :row-class-name="getRowClassName"
     >
       <el-table-column label="服刑人员" width="200" fixed="left">
         <template #default="{ row }">
