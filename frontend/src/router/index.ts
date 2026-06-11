@@ -62,6 +62,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '事件管理', icon: 'WarningFilled' }
       },
       {
+        path: 'incident-command-board',
+        name: 'IncidentCommandBoard',
+        component: () => import('@/views/IncidentCommandBoard.vue'),
+        meta: { title: '事件指挥看板', icon: 'Monitor' }
+      },
+      {
         path: 'visitors',
         name: 'Visitors',
         component: () => import('@/views/VisitorList.vue'),
