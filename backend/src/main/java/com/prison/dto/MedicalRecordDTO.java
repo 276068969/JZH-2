@@ -22,4 +22,8 @@ public class MedicalRecordDTO {
     private String result;
     private String medicine;
     private LocalDate followUpDate;
+    private String followUpStatus;
+    private LocalDate actualFollowUpDate;
+    private String followUpResult;
+    private String followUpRemark;
 }

@@ -176,6 +176,10 @@ CREATE TABLE medical_records (
     result VARCHAR(50) COMMENT 'RECOVERED, TREATING, TRANSFERRED, DECEASED',
     medicine TEXT,
     follow_up_date DATE,
+    follow_up_status VARCHAR(20) COMMENT 'PENDING(待复诊), COMPLETED(已复诊), MISSED(未复诊), CANCELLED(已取消)',
+    actual_follow_up_date DATE,
+    follow_up_result TEXT,
+    follow_up_remark TEXT,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT(1) NOT NULL DEFAULT 0,
@@ -252,7 +256,18 @@ INSERT INTO visitors (visitor_name, id_card, phone, relation, prisoner_id, visit
 ('冯某律师', '440109198212120000', '13800000019', 'LAWYER', 4, '2024-06-10', 'PM', 'PENDING', 1, '上诉准备', NULL, NULL, NULL, 'LAWYER', NULL, NULL, '待审核'),
 ('陈某母亲', '440110196807070000', '13800000020', 'PARENT', 5, '2024-06-11', 'AM', 'COMPLETED', 2, '探视', 3, '身份核实无误，同意会见', '2024-06-10 11:00:00', 'FAMILY', '2024-06-11 09:30:00', '2024-06-11 10:00:00', '会见过程顺利');
 
-INSERT INTO medical_records (prisoner_id, record_date, diagnosis, treatment, hospital, doctor_name, medical_type, result, medicine) VALUES
-(1, '2024-05-10', '上呼吸道感染', '给予抗感染治疗，嘱休息多饮水', '监狱医务室', '张医生', 'OUTPATIENT', 'RECOVERED', '阿莫西林0.5g tid'),
-(2, '2024-05-15', '高血压病', '给予降压治疗，定期监测血压', '监狱医务室', '张医生', 'OUTPATIENT', 'TREATING', '硝苯地平控释片30mg qd'),
-(3, '2024-05-25', '急性胃肠炎', '补液、止泻、抗感染治疗', '监狱医务室', '李医生', 'EMERGENCY', 'RECOVERED', '蒙脱石散3g tid，左氧氟沙星0.2g bid');
+INSERT INTO medical_records (prisoner_id, record_date, diagnosis, treatment, hospital, doctor_name, medical_type, result, medicine, follow_up_date, follow_up_status, actual_follow_up_date, follow_up_result, follow_up_remark) VALUES
+(1, '2024-05-10', '上呼吸道感染', '给予抗感染治疗，嘱休息多饮水', '监狱医务室', '张医生', 'OUTPATIENT', 'RECOVERED', '阿莫西林0.5g tid', NULL, NULL, NULL, NULL, NULL),
+(2, '2024-05-15', '高血压病', '给予降压治疗，定期监测血压', '监狱医务室', '张医生', 'OUTPATIENT', 'TREATING', '硝苯地平控释片30mg qd', '2026-06-15', 'PENDING', NULL, NULL, '每月复诊监测血压'),
+(3, '2024-05-25', '急性胃肠炎', '补液、止泻、抗感染治疗', '监狱医务室', '李医生', 'EMERGENCY', 'RECOVERED', '蒙脱石散3g tid，左氧氟沙星0.2g bid', NULL, NULL, NULL, NULL, NULL),
+(4, '2026-05-20', '糖尿病', '饮食控制+口服降糖药', '市第一人民医院', '王医生', 'OUTPATIENT', 'TREATING', '二甲双胍0.5g bid', '2026-06-20', 'PENDING', NULL, NULL, '需定期监测血糖'),
+(5, '2026-04-10', '冠心病', '扩冠、抗血小板聚集治疗', '市中心医院', '赵医生', 'OUTPATIENT', 'TREATING', '阿司匹林100mg qd，单硝酸异山梨酯20mg bid', '2026-05-10', 'MISSED', NULL, NULL, '逾期未复诊，需重点关注'),
+(5, '2026-03-05', '高血压合并冠心病', '调整降压方案，加强心功能监测', '市中心医院', '赵医生', 'HOSPITALIZATION', 'TREATING', '缬沙坦80mg qd', '2026-04-05', 'MISSED', NULL, NULL, '连续两次未复诊'),
+(6, '2026-05-28', '过敏性鼻炎', '抗过敏治疗', '监狱医务室', '张医生', 'OUTPATIENT', 'TREATING', '氯雷他定10mg qn', '2026-06-28', 'PENDING', NULL, NULL, ''),
+(7, '2026-06-01', '慢性胃炎', '抑酸护胃治疗', '监狱医务室', '李医生', 'OUTPATIENT', 'TREATING', '奥美拉唑20mg qd', '2026-07-01', 'PENDING', NULL, NULL, ''),
+(8, '2026-05-15', '偏头痛', '对症止痛治疗', '监狱医务室', '张医生', 'OUTPATIENT', 'TREATING', '布洛芬缓释胶囊0.3g prn', '2026-06-15', 'PENDING', NULL, NULL, ''),
+(1, '2026-05-08', '慢性支气管炎', '止咳化痰、预防感染', '监狱医务室', '李医生', 'OUTPATIENT', 'TREATING', '氨溴索30mg tid', '2026-06-08', 'COMPLETED', '2026-06-08', '病情稳定，继续原方案', '复诊情况良好'),
+(10, '2026-04-20', '腰椎间盘突出', '理疗+止痛治疗', '市中医院', '陈医生', 'OUTPATIENT', 'TREATING', '塞来昔布0.2g qd', '2026-05-20', 'MISSED', NULL, NULL, '未按时复诊'),
+(10, '2026-03-15', '腰肌劳损', '理疗康复', '市中医院', '陈医生', 'PHYSICAL', 'TREATING', '外用扶他林乳膏', '2026-04-15', 'MISSED', NULL, NULL, '连续两次未复诊，高危人员需关注'),
+(2, '2026-06-05', '常规体检', '血压偏高，余未见异常', '监狱医务室', '张医生', 'PHYSICAL', 'TREATING', '继续服用降压药', '2026-06-11', 'PENDING', NULL, NULL, '今日待复诊'),
+(4, '2026-06-09', '心理咨询', '抑郁情绪评估，建议继续心理疏导', '省精神卫生中心', '陈医生', 'PSYCHOLOGICAL', 'TREATING', '舍曲林50mg qd', '2026-06-10', 'PENDING', NULL, NULL, '昨日应复诊，已过期');

@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '医疗记录', icon: 'FirstAidKit' }
       },
       {
+        path: 'follow-up',
+        name: 'FollowUp',
+        component: () => import('@/views/FollowUpWorkbench.vue'),
+        meta: { title: '复诊工作台', icon: 'Calendar' }
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/UserList.vue'),

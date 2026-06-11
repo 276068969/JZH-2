@@ -1,17 +1,25 @@
-package com.prison.entity;
+package com.prison.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
-@TableName("medical_records")
-public class MedicalRecord {
-    @TableId(type = IdType.AUTO)
+public class FollowUpWorkbenchVO {
+
     private Long id;
+
     private Long prisonerId;
+    private String prisonerNumber;
+    private String prisonerName;
+    private String gender;
+    private Long areaId;
+    private String areaName;
+    private Long cellId;
+    private String cellNumber;
+    private String dangerLevel;
+    private String prisonerStatus;
+
     private LocalDate recordDate;
     private String diagnosis;
     private String treatment;
@@ -20,18 +28,17 @@ public class MedicalRecord {
     private String medicalType;
     private String result;
     private String medicine;
+
     private LocalDate followUpDate;
     private String followUpStatus;
     private LocalDate actualFollowUpDate;
     private String followUpResult;
     private String followUpRemark;
 
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
+    private Integer missedFollowUpCount;
+    private Boolean isKeyAttention;
+    private String keyAttentionReason;
 
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    private Integer deleted;
+    private Long daysUntilFollowUp;
+    private Long daysOverdue;
 }
