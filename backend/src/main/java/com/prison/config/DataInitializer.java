@@ -1,8 +1,10 @@
 package com.prison.config;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.prison.entity.MedicalRecord;
 import com.prison.entity.Prisoner;
 import com.prison.entity.User;
+import com.prison.mapper.MedicalRecordMapper;
 import com.prison.mapper.PrisonerMapper;
 import com.prison.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserMapper userMapper;
     private final PrisonerMapper prisonerMapper;
+    private final MedicalRecordMapper medicalRecordMapper;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -34,6 +37,11 @@ public class DataInitializer implements CommandLineRunner {
             initReleaseWarningPrisoners();
         } catch (Exception e) {
             log.error("初始化临释人员数据失败", e);
+        }
+        try {
+            initFollowUpMedicalRecords();
+        } catch (Exception e) {
+            log.error("初始化复诊医疗数据失败", e);
         }
     }
 
@@ -206,5 +214,92 @@ public class DataInitializer implements CommandLineRunner {
         } catch (Exception e) {
             log.error("插入临释人员失败: {} - {}", prisoner.getName(), e.getMessage(), e);
         }
+    }
+
+    private void initFollowUpMedicalRecords() {
+        LocalDate today = LocalDate.now();
+        Long total = medicalRecordMapper.selectCount(
+                new LambdaQueryWrapper<MedicalRecord>().isNotNull(MedicalRecord::getFollowUpDate)
+        );
+        if (total != null && total >= 6) {
+            log.info("复诊医疗记录已存在（{}条），跳过动态初始化", total);
+            return;
+        }
+        List<Prisoner> prisoners = prisonerMapper.selectList(
+                new LambdaQueryWrapper<Prisoner>().last("LIMIT 8")
+        );
+        if (prisoners.isEmpty()) {
+            log.warn("无可用服刑人员数据，跳过复诊医疗记录初始化");
+            return;
+        }
+
+        String[] diagnoses = {"高血压病2级", "2型糖尿病", "冠心病 稳定型心绞痛", "慢性胃炎伴糜烂",
+                "慢性阻塞性肺疾病", "腰椎间盘突出症", "焦虑状态", "高脂血症"};
+        String[] results = {"TREATING", "TREATING", "STABLE", "CURED", "TREATING", "STABLE", "TREATING", "STABLE"};
+        String[] doctorNames = {"王医生", "李医生", "王医生", "张医生", "李医生", "王医生", "赵医生", "张医生"};
+        int[] offsets = {0, 1, 3, 7, 14, 30, -5, -15};
+        String[] statuses = {"PENDING", "PENDING", "PENDING", "PENDING", "PENDING", "PENDING", "MISSED", "MISSED"};
+        String[] remarks = {
+                "每日监测血压，规律服药", "控制饮食，每周复查血糖",
+                "避免剧烈活动，随身携带硝酸甘油", "清淡饮食，抑酸护胃治疗",
+                "戒烟，规律使用支气管扩张剂", "理疗康复，避免久坐久站",
+                "心理疏导，规律作息", "低脂饮食，3个月后复查血脂"
+        };
+
+        int created = 0;
+        for (int i = 0; i < Math.min(prisoners.size(), 8); i++) {
+            Prisoner p = prisoners.get(i);
+            MedicalRecord record = new MedicalRecord();
+            record.setPrisonerId(p.getId());
+            record.setRecordDate(today.minusDays(30 + i));
+            record.setDiagnosis(diagnoses[i]);
+            record.setResult(results[i]);
+            record.setTreatment(remarks[i]);
+            record.setDoctorName(doctorNames[i]);
+            record.setFollowUpDate(today.plusDays(offsets[i]));
+            record.setFollowUpStatus(statuses[i]);
+            if (offsets[i] < 0) {
+                record.setFollowUpRemark("逾期未复诊，需尽快联系");
+            }
+            int rows = medicalRecordMapper.insert(record);
+            if (rows > 0) {
+                created++;
+                log.info("初始化复诊记录: {}({}) 诊断={} 复诊日期={} 状态={}",
+                        p.getName(), p.getPrisonerNumber(), diagnoses[i], record.getFollowUpDate(), statuses[i]);
+            }
+        }
+
+        if (prisoners.size() >= 2) {
+            Prisoner p = prisoners.get(0);
+            MedicalRecord missed1 = new MedicalRecord();
+            missed1.setPrisonerId(p.getId());
+            missed1.setRecordDate(today.minusDays(90));
+            missed1.setDiagnosis("高血压病2级");
+            missed1.setResult("TREATING");
+            missed1.setTreatment("规律服药，每月复诊");
+            missed1.setDoctorName("王医生");
+            missed1.setFollowUpDate(today.minusDays(60));
+            missed1.setFollowUpStatus("MISSED");
+            missed1.setFollowUpRemark("上月未复诊");
+            medicalRecordMapper.insert(missed1);
+            log.info("初始化连续未复诊记录（第1次）: {} 复诊日期={}", p.getName(), missed1.getFollowUpDate());
+
+            MedicalRecord done = new MedicalRecord();
+            done.setPrisonerId(prisoners.get(1).getId());
+            done.setRecordDate(today.minusDays(45));
+            done.setDiagnosis("2型糖尿病");
+            done.setResult("STABLE");
+            done.setTreatment("控制饮食，规律运动");
+            done.setDoctorName("李医生");
+            done.setFollowUpDate(today.minusDays(15));
+            done.setFollowUpStatus("COMPLETED");
+            done.setActualFollowUpDate(today.minusDays(16));
+            done.setFollowUpResult("血糖控制平稳，继续维持当前方案");
+            done.setFollowUpRemark("患者依从性好");
+            medicalRecordMapper.insert(done);
+            log.info("初始化已完成复诊记录: {} 实际复诊日期={}", prisoners.get(1).getName(), done.getActualFollowUpDate());
+        }
+
+        log.info("复诊医疗记录初始化完成，共新增 {} 条", created + 2);
     }
 }

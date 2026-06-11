@@ -30,26 +30,9 @@ async function handleLogin() {
     await authStore.login(loginForm.username, loginForm.password)
     ElMessage.success('登录成功')
     router.push('/dashboard')
-  } catch {
-    ElMessage.error('登录失败，请检查用户名或密码（演示模式：admin/admin123）')
-    localStorage.setItem('token', 'mock-jwt-token-demo')
-    localStorage.setItem('userInfo', JSON.stringify({
-      id: 1,
-      username: 'admin',
-      realName: '系统管理员',
-      role: 'ROLE_ADMIN',
-      roles: ['ROLE_ADMIN']
-    }))
-    authStore.setToken('mock-jwt-token-demo')
-    authStore.setUserInfo({
-      id: 1,
-      username: 'admin',
-      realName: '系统管理员',
-      role: 'ROLE_ADMIN',
-      roles: ['ROLE_ADMIN']
-    })
-    ElMessage.success('演示模式登录成功')
-    router.push('/dashboard')
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || '登录失败'
+    ElMessage.error(msg + '，请检查用户名或密码，或确认后端服务已启动')
   } finally {
     loading.value = false
   }
@@ -112,7 +95,29 @@ async function handleLogin() {
       </el-form>
 
       <div class="card-footer">
-        <span>演示账号：admin / admin123</span>
+        <div class="account-tips">
+          <p class="tips-title">可登录账号（密码 = 账号 + 123）：</p>
+          <p class="tips-row">
+            <el-tag type="danger" size="small">admin/admin123</el-tag>
+            <span>超级管理员</span>
+          </p>
+          <p class="tips-row">
+            <el-tag type="warning" size="small">manager/manager123</el-tag>
+            <span>监狱管理员</span>
+          </p>
+          <p class="tips-row">
+            <el-tag type="success" size="small">doctor/doctor123</el-tag>
+            <span>医务人员（推荐）</span>
+          </p>
+          <p class="tips-row">
+            <el-tag size="small">guard/guard123</el-tag>
+            <span>狱警</span>
+          </p>
+          <p class="tips-row">
+            <el-tag type="info" size="small">viewer/viewer123</el-tag>
+            <span>只读查看</span>
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -225,9 +230,28 @@ async function handleLogin() {
 }
 
 .card-footer {
-  text-align: center;
+  text-align: left;
   margin-top: 20px;
   font-size: 12px;
-  color: #c0c4cc;
+  color: #909399;
+  background: #f5f7fa;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.account-tips .tips-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: #606266;
+  font-size: 12px;
+}
+
+.account-tips .tips-row {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>

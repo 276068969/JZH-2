@@ -103,7 +103,7 @@ public class FollowUpServiceImpl extends ServiceImpl<MedicalRecordMapper, Medica
         recordWrapper.orderByAsc(MedicalRecord::getFollowUpDate);
 
         Page<MedicalRecord> recordPage = page(
-                new Page<>(queryDTO.getPage(), queryDTO.getSize()),
+                new Page<>(1, Integer.MAX_VALUE),
                 recordWrapper
         );
 
@@ -136,12 +136,24 @@ public class FollowUpServiceImpl extends ServiceImpl<MedicalRecordMapper, Medica
             if (Boolean.TRUE.equals(queryDTO.getOnlyKeyAttention()) && !Boolean.TRUE.equals(vo.getIsKeyAttention())) {
                 continue;
             }
+            if (StringUtils.hasText(queryDTO.getActiveFilter()) && !matchesActiveFilter(vo, queryDTO.getActiveFilter(), today)) {
+                continue;
+            }
             voList.add(vo);
         }
 
-        Page<FollowUpWorkbenchVO> resultPage = new Page<>(queryDTO.getPage(), queryDTO.getSize());
-        resultPage.setRecords(voList);
-        resultPage.setTotal(recordPage.getTotal());
+        int page = Math.max(1, queryDTO.getPage());
+        int size = Math.max(1, queryDTO.getSize());
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, voList.size());
+
+        Page<FollowUpWorkbenchVO> resultPage = new Page<>(page, size);
+        if (fromIndex >= voList.size()) {
+            resultPage.setRecords(Collections.emptyList());
+        } else {
+            resultPage.setRecords(voList.subList(fromIndex, toIndex));
+        }
+        resultPage.setTotal(voList.size());
         return resultPage;
     }
 
@@ -292,6 +304,27 @@ public class FollowUpServiceImpl extends ServiceImpl<MedicalRecordMapper, Medica
         );
         return missedRecords.stream()
                 .collect(Collectors.groupingBy(MedicalRecord::getPrisonerId, Collectors.counting()));
+    }
+
+    private boolean matchesActiveFilter(FollowUpWorkbenchVO vo, String filter, LocalDate today) {
+        if (vo.getFollowUpDate() == null) return false;
+        long days = ChronoUnit.DAYS.between(today, vo.getFollowUpDate());
+        String status = vo.getFollowUpStatus();
+        boolean isPending = !StringUtils.hasText(status) || "PENDING".equals(status);
+
+        return switch (filter) {
+            case "TODAY" -> isPending && days == 0;
+            case "WEEK" -> isPending && days > 0 && days <= 7;
+            case "MONTH" -> isPending && days > 7 && days <= 30;
+            case "OVERDUE" -> "OVERDUE".equals(status) || "MISSED".equals(status)
+                    || (isPending && days < 0);
+            case "MISSED" -> Boolean.TRUE.equals(vo.getIsKeyAttention())
+                    && vo.getMissedFollowUpCount() != null && vo.getMissedFollowUpCount() >= 2;
+            case "TREATING" -> "TREATING".equals(vo.getResult());
+            case "KEY" -> Boolean.TRUE.equals(vo.getIsKeyAttention());
+            case "DONE" -> "COMPLETED".equals(status);
+            default -> true;
+        };
     }
 
     private FollowUpWorkbenchVO convertToVO(MedicalRecord record,

@@ -15,6 +15,7 @@ public class FollowUpQueryDTO {
     private String dangerLevel;
     private Boolean onlyKeyAttention;
     private String prisonerStatus;
+    private String activeFilter;
 
     private Integer page = 1;
     private Integer size = 10;

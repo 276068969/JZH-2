@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage, type FormInstance } from 'element-plus'
 
@@ -51,158 +51,23 @@ interface FollowUpStats {
   totalWithFollowUp: number
 }
 
-const mockStats: FollowUpStats = {
-  todayPending: 2,
-  weekPending: 3,
-  monthPending: 4,
-  overdue: 5,
-  consecutiveMissed: 2,
-  stillTreating: 8,
-  keyAttention: 4,
-  completed: 1,
-  totalWithFollowUp: 13
-}
+const stats = ref<FollowUpStats>({
+  todayPending: 0,
+  weekPending: 0,
+  monthPending: 0,
+  overdue: 0,
+  consecutiveMissed: 0,
+  stillTreating: 0,
+  keyAttention: 0,
+  completed: 0,
+  totalWithFollowUp: 0
+})
 
-const mockRecords: FollowUpRecord[] = [
-  {
-    id: 14, prisonerId: 4, prisonerNumber: 'P20240004', prisonerName: '李某', gender: '女',
-    areaId: 3, areaName: '女监区', cellId: 6, cellNumber: 'F001-101',
-    dangerLevel: 'LOW', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-06-09', diagnosis: '心理咨询', treatment: '抑郁情绪评估，建议继续心理疏导',
-    hospital: '省精神卫生中心', doctorName: '陈医生', medicalType: 'PSYCHOLOGICAL',
-    result: 'TREATING', medicine: '舍曲林50mg qd',
-    followUpDate: '2026-06-10', followUpStatus: 'OVERDUE', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '昨日应复诊，已过期',
-    missedFollowUpCount: 0, isKeyAttention: true, keyAttentionReason: '治疗未结束、治疗中且逾期未复诊',
-    daysUntilFollowUp: 0, daysOverdue: 1
-  },
-  {
-    id: 13, prisonerId: 2, prisonerNumber: 'P20240002', prisonerName: '钱某', gender: '男',
-    areaId: 1, areaName: '男监一区', cellId: 2, cellNumber: 'M001-102',
-    dangerLevel: 'MEDIUM', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-06-05', diagnosis: '常规体检', treatment: '血压偏高，余未见异常',
-    hospital: '监狱医务室', doctorName: '张医生', medicalType: 'PHYSICAL',
-    result: 'TREATING', medicine: '继续服用降压药',
-    followUpDate: '2026-06-11', followUpStatus: 'PENDING', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '今日待复诊',
-    missedFollowUpCount: 0, isKeyAttention: false, keyAttentionReason: '',
-    daysUntilFollowUp: 0, daysOverdue: 0
-  },
-  {
-    id: 2, prisonerId: 2, prisonerNumber: 'P20240002', prisonerName: '钱某', gender: '男',
-    areaId: 1, areaName: '男监一区', cellId: 2, cellNumber: 'M001-102',
-    dangerLevel: 'MEDIUM', prisonerStatus: 'INCARCERATED',
-    recordDate: '2024-05-15', diagnosis: '高血压病', treatment: '给予降压治疗，定期监测血压',
-    hospital: '监狱医务室', doctorName: '张医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '硝苯地平控释片30mg qd',
-    followUpDate: '2026-06-15', followUpStatus: 'PENDING', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '每月复诊监测血压',
-    missedFollowUpCount: 0, isKeyAttention: false, keyAttentionReason: '',
-    daysUntilFollowUp: 4, daysOverdue: 0
-  },
-  {
-    id: 8, prisonerId: 8, prisonerNumber: 'P20240008', prisonerName: '王某', gender: '男',
-    areaId: 1, areaName: '男监一区', cellId: 2, cellNumber: 'M001-102',
-    dangerLevel: 'HIGH', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-05-15', diagnosis: '偏头痛', treatment: '对症止痛治疗',
-    hospital: '监狱医务室', doctorName: '张医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '布洛芬缓释胶囊0.3g prn',
-    followUpDate: '2026-06-15', followUpStatus: 'PENDING', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '',
-    missedFollowUpCount: 0, isKeyAttention: true, keyAttentionReason: '治疗未结束、高危人员',
-    daysUntilFollowUp: 4, daysOverdue: 0
-  },
-  {
-    id: 4, prisonerId: 4, prisonerNumber: 'P20240004', prisonerName: '李某', gender: '女',
-    areaId: 3, areaName: '女监区', cellId: 6, cellNumber: 'F001-101',
-    dangerLevel: 'LOW', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-05-20', diagnosis: '糖尿病', treatment: '饮食控制+口服降糖药',
-    hospital: '市第一人民医院', doctorName: '王医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '二甲双胍0.5g bid',
-    followUpDate: '2026-06-20', followUpStatus: 'PENDING', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '需定期监测血糖',
-    missedFollowUpCount: 0, isKeyAttention: false, keyAttentionReason: '',
-    daysUntilFollowUp: 9, daysOverdue: 0
-  },
-  {
-    id: 6, prisonerId: 6, prisonerNumber: 'P20240006', prisonerName: '吴某', gender: '男',
-    areaId: 1, areaName: '男监一区', cellId: 1, cellNumber: 'M001-101',
-    dangerLevel: 'LOW', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-05-28', diagnosis: '过敏性鼻炎', treatment: '抗过敏治疗',
-    hospital: '监狱医务室', doctorName: '张医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '氯雷他定10mg qn',
-    followUpDate: '2026-06-28', followUpStatus: 'PENDING', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '',
-    missedFollowUpCount: 0, isKeyAttention: false, keyAttentionReason: '',
-    daysUntilFollowUp: 17, daysOverdue: 0
-  },
-  {
-    id: 5, prisonerId: 5, prisonerNumber: 'P20240005', prisonerName: '周某', gender: '男',
-    areaId: 4, areaName: '高度戒备区', cellId: 9, cellNumber: 'H001-ISO2',
-    dangerLevel: 'HIGH', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-04-10', diagnosis: '冠心病', treatment: '扩冠、抗血小板聚集治疗',
-    hospital: '市中心医院', doctorName: '赵医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '阿司匹林100mg qd，单硝酸异山梨酯20mg bid',
-    followUpDate: '2026-05-10', followUpStatus: 'MISSED', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '逾期未复诊，需重点关注',
-    missedFollowUpCount: 2, isKeyAttention: true, keyAttentionReason: '连续2次未复诊、治疗未结束、治疗中且逾期未复诊、高危人员',
-    daysUntilFollowUp: 0, daysOverdue: 32
-  },
-  {
-    id: 61, prisonerId: 5, prisonerNumber: 'P20240005', prisonerName: '周某', gender: '男',
-    areaId: 4, areaName: '高度戒备区', cellId: 9, cellNumber: 'H001-ISO2',
-    dangerLevel: 'HIGH', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-03-05', diagnosis: '高血压合并冠心病', treatment: '调整降压方案，加强心功能监测',
-    hospital: '市中心医院', doctorName: '赵医生', medicalType: 'HOSPITALIZATION',
-    result: 'TREATING', medicine: '缬沙坦80mg qd',
-    followUpDate: '2026-04-05', followUpStatus: 'MISSED', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '连续两次未复诊',
-    missedFollowUpCount: 2, isKeyAttention: true, keyAttentionReason: '连续2次未复诊、治疗未结束、治疗中且逾期未复诊、高危人员',
-    daysUntilFollowUp: 0, daysOverdue: 67
-  },
-  {
-    id: 10, prisonerId: 10, prisonerNumber: 'P20240010', prisonerName: '陈某', gender: '男',
-    areaId: 4, areaName: '高度戒备区', cellId: 9, cellNumber: 'H001-ISO2',
-    dangerLevel: 'EXTREME', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-04-20', diagnosis: '腰椎间盘突出', treatment: '理疗+止痛治疗',
-    hospital: '市中医院', doctorName: '陈医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '塞来昔布0.2g qd',
-    followUpDate: '2026-05-20', followUpStatus: 'MISSED', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '未按时复诊',
-    missedFollowUpCount: 2, isKeyAttention: true, keyAttentionReason: '连续2次未复诊、治疗未结束、治疗中且逾期未复诊、高危人员',
-    daysUntilFollowUp: 0, daysOverdue: 22
-  },
-  {
-    id: 101, prisonerId: 10, prisonerNumber: 'P20240010', prisonerName: '陈某', gender: '男',
-    areaId: 4, areaName: '高度戒备区', cellId: 9, cellNumber: 'H001-ISO2',
-    dangerLevel: 'EXTREME', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-03-15', diagnosis: '腰肌劳损', treatment: '理疗康复',
-    hospital: '市中医院', doctorName: '陈医生', medicalType: 'PHYSICAL',
-    result: 'TREATING', medicine: '外用扶他林乳膏',
-    followUpDate: '2026-04-15', followUpStatus: 'MISSED', actualFollowUpDate: '',
-    followUpResult: '', followUpRemark: '连续两次未复诊，高危人员需关注',
-    missedFollowUpCount: 2, isKeyAttention: true, keyAttentionReason: '连续2次未复诊、治疗未结束、治疗中且逾期未复诊、高危人员',
-    daysUntilFollowUp: 0, daysOverdue: 57
-  },
-  {
-    id: 9, prisonerId: 1, prisonerNumber: 'P20240001', prisonerName: '赵某', gender: '男',
-    areaId: 1, areaName: '男监一区', cellId: 1, cellNumber: 'M001-101',
-    dangerLevel: 'LOW', prisonerStatus: 'INCARCERATED',
-    recordDate: '2026-05-08', diagnosis: '慢性支气管炎', treatment: '止咳化痰、预防感染',
-    hospital: '监狱医务室', doctorName: '李医生', medicalType: 'OUTPATIENT',
-    result: 'TREATING', medicine: '氨溴索30mg tid',
-    followUpDate: '2026-06-08', followUpStatus: 'COMPLETED', actualFollowUpDate: '2026-06-08',
-    followUpResult: '病情稳定，继续原方案', followUpRemark: '复诊情况良好',
-    missedFollowUpCount: 0, isKeyAttention: false, keyAttentionReason: '',
-    daysUntilFollowUp: 0, daysOverdue: 0
-  }
-]
-
-const stats = ref<FollowUpStats>({ ...mockStats })
 const allRecords = ref<FollowUpRecord[]>([])
+const totalRecords = ref(0)
 const loading = ref(false)
 const tableLoading = ref(false)
-const useMockData = ref(false)
+const apiError = ref('')
 
 const filterForm = reactive({
   keyword: '',
@@ -216,7 +81,6 @@ const filterForm = reactive({
 const followUpStatusOptions = [
   { label: '全部状态', value: '' },
   { label: '待复诊', value: 'PENDING' },
-  { label: '今日待复诊', value: 'TODAY' },
   { label: '已过期', value: 'OVERDUE' },
   { label: '未复诊', value: 'MISSED' },
   { label: '已复诊', value: 'COMPLETED' },
@@ -287,110 +151,15 @@ const summaryCards = computed(() => [
   { key: 'DONE', label: '已完成复诊', color: '#909399', icon: 'CircleCheck', count: stats.value.completed, desc: '累计完成' }
 ])
 
-const today = computed(() => {
-  const t = new Date()
-  t.setHours(0, 0, 0, 0)
-  return t
-})
-
-function parseLocalDate(dateStr: string): Date {
-  if (!dateStr) return new Date(NaN)
-  const parts = dateStr.split('-')
-  if (parts.length === 3) {
-    return new Date(
-      parseInt(parts[0], 10),
-      parseInt(parts[1], 10) - 1,
-      parseInt(parts[2], 10)
-    )
-  }
-  return new Date(dateStr)
-}
-
-function daysUntil(dateStr: string): number {
-  const d = parseLocalDate(dateStr)
-  if (isNaN(d.getTime())) return -1
-  const t = new Date(today.value)
-  return Math.ceil((d.getTime() - t.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-const filteredRecords = computed(() => {
-  try {
-    return allRecords.value.filter(r => {
-      if (filterForm.keyword) {
-        const kw = filterForm.keyword.toLowerCase()
-        if (!r.prisonerName.toLowerCase().includes(kw)
-          && !r.prisonerNumber.toLowerCase().includes(kw)
-          && !r.diagnosis.toLowerCase().includes(kw)
-          && !r.doctorName.toLowerCase().includes(kw)) {
-          return false
-        }
-      }
-      if (filterForm.followUpStatus) {
-        if (filterForm.followUpStatus === 'TODAY') {
-          if (!(r.followUpStatus === 'PENDING' && daysUntil(r.followUpDate) === 0)) {
-            return false
-          }
-        } else if (filterForm.followUpStatus === 'OVERDUE') {
-          if (!(r.followUpStatus === 'OVERDUE' || r.followUpStatus === 'MISSED'
-            || (r.followUpStatus === 'PENDING' && daysUntil(r.followUpDate) < 0))) {
-            return false
-          }
-        } else {
-          if (r.followUpStatus !== filterForm.followUpStatus) return false
-        }
-      }
-      if (filterForm.followUpStartDate) {
-        if (daysUntil(r.followUpDate) < daysUntil(filterForm.followUpStartDate)) return false
-      }
-      if (filterForm.followUpEndDate) {
-        if (daysUntil(r.followUpDate) > daysUntil(filterForm.followUpEndDate)) return false
-      }
-      if (filterForm.dangerLevel) {
-        if (r.dangerLevel !== filterForm.dangerLevel) return false
-      }
-      if (filterForm.onlyKeyAttention) {
-        if (!r.isKeyAttention) return false
-      }
-      if (activeFilter.value === 'TODAY') {
-        if (!(r.followUpStatus === 'PENDING' && daysUntil(r.followUpDate) === 0)) return false
-      } else if (activeFilter.value === 'WEEK') {
-        const d = daysUntil(r.followUpDate)
-        if (!(r.followUpStatus === 'PENDING' && d > 0 && d <= 7)) return false
-      } else if (activeFilter.value === 'MONTH') {
-        const d = daysUntil(r.followUpDate)
-        if (!(r.followUpStatus === 'PENDING' && d > 7 && d <= 30)) return false
-      } else if (activeFilter.value === 'OVERDUE') {
-        if (!(r.followUpStatus === 'OVERDUE' || r.followUpStatus === 'MISSED'
-          || (r.followUpStatus === 'PENDING' && daysUntil(r.followUpDate) < 0))) return false
-      } else if (activeFilter.value === 'MISSED') {
-        if (!r.isKeyAttention || !(r.missedFollowUpCount >= 2)) return false
-      } else if (activeFilter.value === 'TREATING') {
-        if (r.result !== 'TREATING') return false
-      } else if (activeFilter.value === 'KEY') {
-        if (!r.isKeyAttention) return false
-      } else if (activeFilter.value === 'DONE') {
-        if (r.followUpStatus !== 'COMPLETED') return false
-      }
-      return true
-    })
-  } catch (e) {
-    console.error('filteredRecords error', e)
-    return []
-  }
-})
-
-const pagedRecords = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredRecords.value.slice(start, start + pageSize.value)
-})
-
 function handleCardClick(key: string) {
   activeFilter.value = activeFilter.value === key ? null : key
   currentPage.value = 1
+  fetchWorkbench()
 }
 
 function handleFilter() {
   currentPage.value = 1
+  fetchWorkbench()
 }
 
 function handleReset() {
@@ -402,6 +171,7 @@ function handleReset() {
   filterForm.onlyKeyAttention = false
   activeFilter.value = null
   currentPage.value = 1
+  fetchWorkbench()
 }
 
 function getStatusTag(status: string) {
@@ -460,31 +230,13 @@ async function handleMarkSubmit() {
 
   markLoading.value = true
   try {
-    if (!useMockData.value) {
-      await post('/follow-up/mark', markForm)
-    }
-    ElMessage.success('操作成功')
+    await post('/follow-up/mark', markForm)
+    ElMessage.success('复诊状态已保存')
     markDialogVisible.value = false
     await fetchData()
-  } catch (e) {
-    console.error('handleMarkSubmit error', e)
-    if (useMockData.value) {
-      const idx = allRecords.value.findIndex(r => r.id === markForm.medicalRecordId)
-      if (idx > -1) {
-        allRecords.value[idx].followUpStatus = markForm.followUpStatus
-        if (markForm.actualFollowUpDate) {
-          allRecords.value[idx].actualFollowUpDate = markForm.actualFollowUpDate
-        }
-        if (markForm.followUpResult) {
-          allRecords.value[idx].followUpResult = markForm.followUpResult
-        }
-        if (markForm.followUpRemark) {
-          allRecords.value[idx].followUpRemark = markForm.followUpRemark
-        }
-      }
-      ElMessage.success('操作成功（模拟数据）')
-      markDialogVisible.value = false
-    }
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || e?.message || '保存失败'
+    ElMessage.error('操作失败：' + msg)
   } finally {
     markLoading.value = false
   }
@@ -492,19 +244,18 @@ async function handleMarkSubmit() {
 
 async function fetchStats() {
   loading.value = true
+  apiError.value = ''
   try {
     const res = await get('/follow-up/stats')
     if (res && res.data && res.data.code === 200 && res.data.data) {
       stats.value = res.data.data
-      useMockData.value = false
     } else {
-      stats.value = { ...mockStats }
-      useMockData.value = true
+      ElMessage.error('统计数据加载异常：' + (res?.data?.message || '返回格式不正确'))
     }
-  } catch (e) {
-    console.warn('stats API failed, using mock', e)
-    stats.value = { ...mockStats }
-    useMockData.value = true
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || e?.message || '网络错误'
+    apiError.value = msg
+    ElMessage.error('加载统计数据失败：' + msg + '（请确认后端服务已启动且数据库已初始化）')
   } finally {
     loading.value = false
   }
@@ -518,33 +269,28 @@ async function fetchWorkbench() {
       size: pageSize.value
     }
     if (filterForm.keyword) params.keyword = filterForm.keyword
-    if (filterForm.followUpStatus && !['TODAY'].includes(filterForm.followUpStatus)) {
-      params.followUpStatus = filterForm.followUpStatus
-    }
+    if (filterForm.followUpStatus) params.followUpStatus = filterForm.followUpStatus
     if (filterForm.followUpStartDate) params.followUpStartDate = filterForm.followUpStartDate
     if (filterForm.followUpEndDate) params.followUpEndDate = filterForm.followUpEndDate
     if (filterForm.dangerLevel) params.dangerLevel = filterForm.dangerLevel
     if (filterForm.onlyKeyAttention) params.onlyKeyAttention = filterForm.onlyKeyAttention
+    if (activeFilter.value) params.activeFilter = activeFilter.value
 
     const res = await get('/follow-up/workbench', params)
     if (res && res.data && res.data.code === 200 && res.data.data) {
       const pageData = res.data.data
-      const records = pageData.records || []
-      if (Array.isArray(records) && records.length > 0) {
-        allRecords.value = records
-        useMockData.value = false
-      } else {
-        allRecords.value = [...mockRecords]
-        useMockData.value = true
-      }
+      allRecords.value = pageData.records || []
+      totalRecords.value = pageData.total || 0
     } else {
-      allRecords.value = [...mockRecords]
-      useMockData.value = true
+      ElMessage.error('列表数据加载异常：' + (res?.data?.message || '返回格式不正确'))
+      allRecords.value = []
+      totalRecords.value = 0
     }
-  } catch (e) {
-    console.warn('workbench API failed, using mock', e)
-    allRecords.value = [...mockRecords]
-    useMockData.value = true
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || e?.message || '网络错误'
+    ElMessage.error('加载列表失败：' + msg + '（请确认后端服务已启动且数据库已初始化）')
+    allRecords.value = []
+    totalRecords.value = 0
   } finally {
     tableLoading.value = false
   }
@@ -553,6 +299,10 @@ async function fetchWorkbench() {
 async function fetchData() {
   await Promise.all([fetchStats(), fetchWorkbench()])
 }
+
+watch([currentPage, pageSize], () => {
+  fetchWorkbench()
+})
 
 onMounted(() => {
   fetchData()
@@ -563,7 +313,9 @@ onMounted(() => {
   <div class="workbench-page">
     <div class="page-header">
       <h2>医疗复诊工作台</h2>
-      <el-tag v-if="useMockData" type="info" size="small" style="margin-left:12px">当前使用模拟数据</el-tag>
+      <el-tag v-if="apiError" type="danger" size="small" style="margin-left:12px">
+        ⚠ 后端连接异常：{{ apiError }}
+      </el-tag>
     </div>
 
     <div class="summary-grid">
@@ -617,13 +369,29 @@ onMounted(() => {
       <el-button @click="handleReset">重置</el-button>
     </div>
 
+    <el-alert
+      v-if="apiError"
+      type="error"
+      :closable="false"
+      style="margin-bottom: 16px"
+    >
+      <template #title>
+        无法连接后端服务，请确认：
+        <ol style="margin: 6px 0 0 20px; line-height: 1.8">
+          <li>已执行 <code>docker-compose up -d</code> 或本地启动后端（端口 8088）</li>
+          <li>MySQL 已启动且初始化脚本 <code>init.sql</code> 已执行</li>
+          <li>登录账号使用真实用户名密码（如 doctor/doctor123）</li>
+        </ol>
+      </template>
+    </el-alert>
+
     <el-table
       v-loading="tableLoading"
-      :data="pagedRecords"
+      :data="allRecords"
       border
       stripe
       style="width:100%"
-      empty-text="暂无符合条件的复诊记录"
+      empty-text="暂无符合条件的复诊记录（请检查筛选条件，或确认数据库中已存在医疗复诊数据）"
       :row-class-name="getRowClassName"
     >
       <el-table-column label="服刑人员" width="200" fixed="left">
@@ -726,7 +494,7 @@ onMounted(() => {
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50, 100]"
-        :total="filteredRecords.length"
+        :total="totalRecords"
         layout="total, sizes, prev, pager, next"
         background
       />
@@ -793,7 +561,7 @@ onMounted(() => {
               v-model="markForm.followUpResult"
               type="textarea"
               :rows="2"
-              placeholder="请输入复诊后的诊断或治疗建议"
+              placeholder="请输入复诊后的诊断或治疗建议，将保存到数据库"
             />
           </el-form-item>
         </template>
@@ -803,13 +571,13 @@ onMounted(() => {
             v-model="markForm.followUpRemark"
             type="textarea"
             :rows="2"
-            :placeholder="markActionType === 'MISS' ? '请说明未复诊的原因或后续跟进计划' : '其他需要说明的情况'"
+            :placeholder="markActionType === 'MISS' ? '请说明未复诊的原因或后续跟进计划，将保存到数据库' : '其他需要说明的情况，将保存到数据库'"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="markDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="markLoading" @click="handleMarkSubmit">确定</el-button>
+        <el-button type="primary" :loading="markLoading" @click="handleMarkSubmit">保存到数据库</el-button>
       </template>
     </el-dialog>
   </div>
@@ -826,6 +594,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .page-header h2 {
