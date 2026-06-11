@@ -14,4 +14,10 @@ public interface PrisonerService extends IService<Prisoner> {
     Page<Prisoner> advancedSearch(PrisonerQueryDTO queryDTO);
 
     List<ReleaseWarningVO> getReleaseWarnings(Integer days, String status, String dangerLevel);
+
+    void createPrisoner(Prisoner prisoner);
+
+    void updatePrisoner(Long id, Prisoner prisoner);
+
+    void deletePrisoner(Long id);
 }

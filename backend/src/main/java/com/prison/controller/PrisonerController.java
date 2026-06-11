@@ -61,7 +61,7 @@ public class PrisonerController {
     public Result<?> create(@Valid @RequestBody PrisonerDTO dto) {
         Prisoner prisoner = new Prisoner();
         BeanUtils.copyProperties(dto, prisoner);
-        prisonerService.save(prisoner);
+        prisonerService.createPrisoner(prisoner);
         return Result.success("创建成功");
     }
 
@@ -70,15 +70,14 @@ public class PrisonerController {
     public Result<?> update(@PathVariable Long id, @Valid @RequestBody PrisonerDTO dto) {
         Prisoner prisoner = new Prisoner();
         BeanUtils.copyProperties(dto, prisoner);
-        prisoner.setId(id);
-        prisonerService.updateById(prisoner);
+        prisonerService.updatePrisoner(id, prisoner);
         return Result.success("更新成功");
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<?> delete(@PathVariable Long id) {
-        prisonerService.removeById(id);
+        prisonerService.deletePrisoner(id);
         return Result.success("删除成功");
     }
 }

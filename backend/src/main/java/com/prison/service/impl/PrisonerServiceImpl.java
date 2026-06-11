@@ -3,13 +3,17 @@ package com.prison.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.prison.config.BusinessException;
 import com.prison.dto.PrisonerQueryDTO;
 import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 import com.prison.mapper.PrisonerMapper;
+import com.prison.service.CellService;
 import com.prison.service.PrisonerService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -18,7 +22,10 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> implements PrisonerService {
+
+    private final CellService cellService;
 
     @Override
     public Page<Prisoner> pagePrisoners(int page, int size, String keyword) {
@@ -100,6 +107,71 @@ public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> i
         }
 
         return result;
+    }
+
+    @Override
+    @Transactional
+    public void createPrisoner(Prisoner prisoner) {
+        if (prisoner.getCellId() != null) {
+            cellService.validateCanAssign(prisoner.getCellId());
+            save(prisoner);
+            cellService.incrementOccupancy(prisoner.getCellId());
+        } else {
+            save(prisoner);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updatePrisoner(Long id, Prisoner prisoner) {
+        Prisoner existing = getById(id);
+        if (existing == null) {
+            throw new BusinessException("服刑人员不存在");
+        }
+
+        Long oldCellId = existing.getCellId();
+        Long newCellId = prisoner.getCellId();
+
+        boolean cellChanged = !cellIdsEqual(oldCellId, newCellId);
+
+        if (cellChanged) {
+            if (newCellId != null) {
+                cellService.validateCanAssign(newCellId);
+            }
+            prisoner.setId(id);
+            updateById(prisoner);
+            if (oldCellId != null) {
+                cellService.decrementOccupancy(oldCellId);
+            }
+            if (newCellId != null) {
+                cellService.incrementOccupancy(newCellId);
+            }
+        } else {
+            prisoner.setId(id);
+            updateById(prisoner);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deletePrisoner(Long id) {
+        Prisoner existing = getById(id);
+        if (existing == null) {
+            throw new BusinessException("服刑人员不存在");
+        }
+
+        Long cellId = existing.getCellId();
+        removeById(id);
+
+        if (cellId != null) {
+            cellService.decrementOccupancy(cellId);
+        }
+    }
+
+    private boolean cellIdsEqual(Long a, Long b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
     }
 
     private ReleaseWarningVO buildWarningVO(int days, String status, String dangerLevel) {

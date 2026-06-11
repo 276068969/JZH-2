@@ -44,7 +44,7 @@ public class CellController {
     public Result<?> create(@Valid @RequestBody CellDTO dto) {
         Cell cell = new Cell();
         BeanUtils.copyProperties(dto, cell);
-        cellService.save(cell);
+        cellService.createCell(cell);
         return Result.success("创建成功");
     }
 
@@ -53,15 +53,28 @@ public class CellController {
     public Result<?> update(@PathVariable Long id, @Valid @RequestBody CellDTO dto) {
         Cell cell = new Cell();
         BeanUtils.copyProperties(dto, cell);
-        cell.setId(id);
-        cellService.updateById(cell);
+        cellService.updateCell(id, cell);
         return Result.success("更新成功");
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<?> delete(@PathVariable Long id) {
-        cellService.removeById(id);
+        cellService.deleteCell(id);
         return Result.success("删除成功");
+    }
+
+    @PostMapping("/{id}/sync-occupancy")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> syncOccupancy(@PathVariable Long id) {
+        cellService.syncOccupancy(id);
+        return Result.success("同步完成");
+    }
+
+    @PostMapping("/sync-all-occupancy")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Result<?> syncAllOccupancy() {
+        cellService.syncAllOccupancy();
+        return Result.success("全量同步完成");
     }
 }

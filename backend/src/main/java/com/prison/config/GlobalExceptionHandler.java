@@ -45,6 +45,12 @@ public class GlobalExceptionHandler {
         return Result.error(403, "权限不足");
     }
 
+    @ExceptionHandler(BusinessException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleBusiness(BusinessException e) {
+        return Result.error(e.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleRuntime(RuntimeException e) {
