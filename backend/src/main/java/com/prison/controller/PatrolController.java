@@ -1,9 +1,11 @@
 package com.prison.controller;
 
 import com.prison.Result;
+import com.prison.dto.PatrolAbnormalQueryDTO;
 import com.prison.dto.PatrolDTO;
 import com.prison.entity.Patrol;
 import com.prison.service.PatrolService;
+import com.prison.vo.PatrolAbnormalSummaryVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -63,5 +65,11 @@ public class PatrolController {
     public Result<?> delete(@PathVariable Long id) {
         patrolService.removeById(id);
         return Result.success("删除成功");
+    }
+
+    @GetMapping("/abnormal-summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VIEWER')")
+    public Result<PatrolAbnormalSummaryVO> abnormalSummary(PatrolAbnormalQueryDTO query) {
+        return Result.success(patrolService.abnormalSummary(query));
     }
 }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.prison.mapper.PatrolMapper">
+
+    <sql id="abnormalCondition">
+        p.deleted = 0 AND p.result != '正常'
+        <if test="q.startDate != null">
+            AND DATE(p.patrol_time) &gt;= #{q.startDate}
+        </if>
+        <if test="q.endDate != null">
+            AND DATE(p.patrol_time) &lt;= #{q.endDate}
+        </if>
+        <if test="q.patrolType != null and q.patrolType != ''">
+            AND p.patrol_type = #{q.patrolType}
+        </if>
+        <if test="q.areaId != null">
+            AND p.area_id = #{q.areaId}
+        </if>
+        <if test="q.guardId != null">
+            AND p.guard_id = #{q.guardId}
+        </if>
+    </sql>
+
+    <select id="countAbnormal" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM patrols p
+        WHERE <include refid="abnormalCondition"/>
+    </select>
+
+    <select id="groupByPatrolType" resultType="com.prison.vo.PatrolAbnormalSummaryVO$TypeStat">
+        SELECT p.patrol_type AS patrolType, COUNT(*) AS count
+        FROM patrols p
+        WHERE <include refid="abnormalCondition"/>
+        GROUP BY p.patrol_type
+        ORDER BY count DESC
+    </select>
+
+    <select id="groupByArea" resultType="com.prison.vo.PatrolAbnormalSummaryVO$AreaStat">
+        SELECT p.area_id AS areaId, a.area_name AS areaName, COUNT(*) AS count
+        FROM patrols p
+        LEFT JOIN prison_areas a ON p.area_id = a.id AND a.deleted = 0
+        WHERE <include refid="abnormalCondition"/>
+        GROUP BY p.area_id, a.area_name
+        ORDER BY count DESC
+    </select>
+
+    <select id="groupByGuard" resultType="com.prison.vo.PatrolAbnormalSummaryVO$GuardStat">
+        SELECT p.guard_id AS guardId, g.name AS guardName, COUNT(*) AS count
+        FROM patrols p
+        LEFT JOIN guards g ON p.guard_id = g.id AND g.deleted = 0
+        WHERE <include refid="abnormalCondition"/>
+        GROUP BY p.guard_id, g.name
+        ORDER BY count DESC
+    </select>
+
+    <select id="groupByHour" resultType="com.prison.vo.PatrolAbnormalSummaryVO$HourStat">
+        SELECT HOUR(p.patrol_time) AS hour, COUNT(*) AS count
+        FROM patrols p
+        WHERE <include refid="abnormalCondition"/>
+        GROUP BY HOUR(p.patrol_time)
+        ORDER BY hour
+    </select>
+
+    <select id="pageAbnormalRecords" resultType="com.prison.vo.PatrolAbnormalSummaryVO$AbnormalRecord">
+        SELECT p.id, DATE_FORMAT(p.patrol_time, '%Y-%m-%d %H:%i:%s') AS patrolTime,
+               p.patrol_type AS patrolType, p.result, p.description,
+               p.guard_id AS guardId, g.name AS guardName,
+               p.area_id AS areaId, a.area_name AS areaName
+        FROM patrols p
+        LEFT JOIN guards g ON p.guard_id = g.id AND g.deleted = 0
+        LEFT JOIN prison_areas a ON p.area_id = a.id AND a.deleted = 0
+        WHERE <include refid="abnormalCondition"/>
+        ORDER BY p.patrol_time DESC
+    </select>
+
+</mapper>
