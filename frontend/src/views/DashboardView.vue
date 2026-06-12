@@ -12,27 +12,55 @@ const patrolChart = ref<HTMLDivElement>()
 
 let charts: echarts.ECharts[] = []
 
-const statsCards = ref([
+interface StatsCard {
+  label: string
+  value: number | string
+  icon: string
+  color: string
+  unit: string
+  route?: string
+}
+
+interface VisitorCard {
+  label: string
+  value: number
+  icon: string
+  color: string
+  unit: string
+  route: string
+  highlight?: boolean
+}
+
+const statsCards = ref<StatsCard[]>([
   { label: '在押总人数', value: 0, icon: 'UserFilled', color: '#409eff', unit: '人' },
   { label: '在职警员', value: 0, icon: 'Avatar', color: '#67c23a', unit: '人' },
   { label: '监舍使用率', value: '0', icon: 'HomeFilled', color: '#e6a23c', unit: '%' },
-  { label: '待处理事件', value: 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' }
+  { label: '今日巡查', value: 0, icon: 'Flag', color: '#9b59b6', unit: '次' },
+  { label: '待处理事件', value: 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' },
+  { label: '今日会见', value: 0, icon: 'ChatDotRound', color: '#3498db', unit: '场' }
 ])
 
-const visitorStats = ref([
+const visitorStats = ref<VisitorCard[]>([
   { label: '今日访客', value: 0, icon: 'User', color: '#409eff', unit: '人', route: '/visitors' },
   { label: '待审核预约', value: 0, icon: 'Clock', color: '#e6a23c', unit: '条', route: '/visitors', highlight: true },
   { label: '会见中', value: 0, icon: 'VideoPlay', color: '#67c23a', unit: '场', route: '/visitors' }
 ])
 
-function initPrisonerChart() {
+const dashboardData = ref<any>(null)
+
+function initPrisonerChart(trend: any) {
   if (!prisonerChart.value) return
   const chart = echarts.init(prisonerChart.value)
+  const months = trend?.months || []
+  const prisonerCounts = trend?.prisonerCounts || []
+  const newEntries = trend?.newEntries || []
+  const releases = trend?.releases || []
+
   chart.setOption({
     tooltip: { trigger: 'axis' },
     legend: { data: ['在押人数', '新入监', '释放'], bottom: 0 },
     grid: { left: '3%', right: '4%', bottom: '40px', top: '20px', containLabel: true },
-    xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'] },
+    xAxis: { type: 'category', data: months },
     yAxis: { type: 'value' },
     series: [
       {
@@ -40,30 +68,36 @@ function initPrisonerChart() {
         type: 'bar',
         barWidth: 14,
         itemStyle: { color: '#409eff', borderRadius: [4, 4, 0, 0] },
-        data: [1180, 1195, 1210, 1225, 1200, 1230, 1245, 1260, 1248, 1235, 1220, 1248]
+        data: prisonerCounts
       },
       {
         name: '新入监',
         type: 'line',
         smooth: true,
         itemStyle: { color: '#67c23a' },
-        data: [30, 35, 28, 42, 25, 38, 32, 45, 22, 18, 20, 28]
+        data: newEntries
       },
       {
         name: '释放',
         type: 'line',
         smooth: true,
         itemStyle: { color: '#e6a23c' },
-        data: [25, 20, 32, 27, 45, 20, 28, 33, 35, 36, 38, 15]
+        data: releases
       }
     ]
   })
   charts.push(chart)
 }
 
-function initCellChart() {
+function initCellChart(distribution: any[]) {
   if (!cellChart.value) return
   const chart = echarts.init(cellChart.value)
+  const pieData = (distribution || []).map((item: any) => ({
+    value: item.value,
+    name: item.name,
+    itemStyle: { color: item.color }
+  }))
+
   chart.setOption({
     tooltip: { trigger: 'item' },
     legend: { orient: 'vertical', right: '5%', top: 'center' },
@@ -74,49 +108,48 @@ function initCellChart() {
       avoidLabelOverlap: false,
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
-      data: [
-        { value: 35, name: '已满', itemStyle: { color: '#f56c6c' } },
-        { value: 10, name: '空闲', itemStyle: { color: '#67c23a' } },
-        { value: 3, name: '维护中', itemStyle: { color: '#e6a23c' } }
-      ]
+      data: pieData
     }]
   })
   charts.push(chart)
 }
 
-function initIncidentChart() {
+function initIncidentChart(categoryStats: any[]) {
   if (!incidentChart.value) return
   const chart = echarts.init(incidentChart.value)
+  const categories = (categoryStats || []).map((item: any) => item.label)
+  const seriesData = (categoryStats || []).map((item: any) => ({
+    value: item.count,
+    itemStyle: { color: item.color }
+  }))
+
   chart.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '20px', containLabel: true },
-    xAxis: { type: 'category', data: ['违纪', '医疗', '逃跑', '打架', '违规物品', '其他'] },
+    xAxis: { type: 'category', data: categories },
     yAxis: { type: 'value' },
     series: [{
       type: 'bar',
       barWidth: 24,
       itemStyle: { borderRadius: [4, 4, 0, 0] },
-      data: [
-        { value: 8, itemStyle: { color: '#f56c6c' } },
-        { value: 5, itemStyle: { color: '#409eff' } },
-        { value: 1, itemStyle: { color: '#e6a23c' } },
-        { value: 3, itemStyle: { color: '#f56c6c' } },
-        { value: 4, itemStyle: { color: '#909399' } },
-        { value: 2, itemStyle: { color: '#67c23a' } }
-      ]
+      data: seriesData
     }]
   })
   charts.push(chart)
 }
 
-function initPatrolChart() {
+function initPatrolChart(weeklyStats: any) {
   if (!patrolChart.value) return
   const chart = echarts.init(patrolChart.value)
+  const days = weeklyStats?.days || []
+  const planned = weeklyStats?.planned || []
+  const completed = weeklyStats?.completed || []
+
   chart.setOption({
     tooltip: { trigger: 'axis' },
     legend: { data: ['计划巡查', '已完成'], bottom: 0 },
     grid: { left: '3%', right: '4%', bottom: '40px', top: '20px', containLabel: true },
-    xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
+    xAxis: { type: 'category', data: days },
     yAxis: { type: 'value' },
     series: [
       {
@@ -124,14 +157,14 @@ function initPatrolChart() {
         type: 'bar',
         barWidth: 12,
         itemStyle: { color: '#409eff', borderRadius: [4, 4, 0, 0] },
-        data: [24, 24, 24, 24, 24, 20, 20]
+        data: planned
       },
       {
         name: '已完成',
         type: 'bar',
         barWidth: 12,
         itemStyle: { color: '#67c23a', borderRadius: [4, 4, 0, 0] },
-        data: [23, 22, 24, 23, 21, 19, 18]
+        data: completed
       }
     ]
   })
@@ -143,11 +176,14 @@ async function fetchDashboardData() {
     const res = await get('/dashboard')
     if (res.data.code === 200) {
       const data = res.data.data
+      dashboardData.value = data
       statsCards.value = [
         { label: '在押总人数', value: data.prisonerCount || 0, icon: 'UserFilled', color: '#409eff', unit: '人' },
         { label: '在职警员', value: data.guardCount || 0, icon: 'Avatar', color: '#67c23a', unit: '人' },
         { label: '监舍使用率', value: data.cellUsageRate || 0, icon: 'HomeFilled', color: '#e6a23c', unit: '%' },
-        { label: '待处理事件', value: data.pendingIncidentCount || 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' }
+        { label: '今日巡查', value: data.todayPatrolCount || 0, icon: 'Flag', color: '#9b59b6', unit: '次' },
+        { label: '待处理事件', value: data.pendingIncidentCount || 0, icon: 'WarningFilled', color: '#f56c6c', unit: '起' },
+        { label: '今日会见', value: data.todayVisitorCount || 0, icon: 'ChatDotRound', color: '#3498db', unit: '场' }
       ]
       visitorStats.value = [
         { label: '今日访客', value: data.todayVisitorCount || 0, icon: 'User', color: '#409eff', unit: '人', route: '/visitors' },
@@ -160,7 +196,7 @@ async function fetchDashboardData() {
   }
 }
 
-function handleCardClick(route: string) {
+function handleCardClick(route?: string) {
   if (route) {
     router.push(route)
   }
@@ -169,10 +205,11 @@ function handleCardClick(route: string) {
 onMounted(async () => {
   await fetchDashboardData()
   await nextTick()
-  initPrisonerChart()
-  initCellChart()
-  initIncidentChart()
-  initPatrolChart()
+  const data = dashboardData.value
+  initPrisonerChart(data?.prisonerTrend)
+  initCellChart(data?.cellDistribution)
+  initIncidentChart(data?.incidentCategoryStats)
+  initPatrolChart(data?.patrolWeeklyStats)
 })
 
 onUnmounted(() => {
@@ -274,7 +311,7 @@ onBeforeUnmount(() => {
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -449,7 +486,16 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
 }
 
+@media (max-width: 1400px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 1200px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .charts-row {
     grid-template-columns: 1fr;
   }
