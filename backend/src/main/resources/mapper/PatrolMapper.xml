@@ -3,7 +3,7 @@
 <mapper namespace="com.prison.mapper.PatrolMapper">
 
     <sql id="abnormalCondition">
-        p.deleted = 0 AND p.result != '正常'
+        p.deleted = 0 AND COALESCE(p.result, '') NOT IN ('NORMAL', '正常')
         <if test="q.startDate != null">
             AND DATE(p.patrol_time) &gt;= #{q.startDate}
         </if>
