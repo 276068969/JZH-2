@@ -29,6 +29,26 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
 
     private final PrisonerService prisonerService;
 
+    private volatile Boolean visitTypeColumnExists;
+
+    private boolean isVisitTypeColumnExists() {
+        if (visitTypeColumnExists != null) {
+            return visitTypeColumnExists;
+        }
+        synchronized (this) {
+            if (visitTypeColumnExists != null) {
+                return visitTypeColumnExists;
+            }
+            try {
+                lambdaQuery().eq(Visitor::getVisitType, "__probe__").last("LIMIT 0").count();
+                visitTypeColumnExists = true;
+            } catch (Exception e) {
+                visitTypeColumnExists = false;
+            }
+            return visitTypeColumnExists;
+        }
+    }
+
     @Override
     public Page<Visitor> pageVisitors(int page, int size, String keyword, String status, String visitType) {
         LambdaQueryWrapper<Visitor> wrapper = new LambdaQueryWrapper<>();
@@ -42,7 +62,7 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         if (StringUtils.hasText(status)) {
             wrapper.eq(Visitor::getStatus, status);
         }
-        if (StringUtils.hasText(visitType)) {
+        if (StringUtils.hasText(visitType) && isVisitTypeColumnExists()) {
             wrapper.eq(Visitor::getVisitType, visitType);
         }
         wrapper.orderByDesc(Visitor::getVisitDate);
@@ -132,6 +152,12 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
     @Override
     public Map<String, Long> getTypeStatistics() {
         Map<String, Long> result = new HashMap<>();
+        if (!isVisitTypeColumnExists()) {
+            result.put("family", 0L);
+            result.put("lawyer", 0L);
+            result.put("other", 0L);
+            return result;
+        }
         result.put("family", lambdaQuery().eq(Visitor::getVisitType, "FAMILY").count());
         result.put("lawyer", lambdaQuery().eq(Visitor::getVisitType, "LAWYER").count());
         result.put("other", lambdaQuery().ne(Visitor::getVisitType, "FAMILY")
