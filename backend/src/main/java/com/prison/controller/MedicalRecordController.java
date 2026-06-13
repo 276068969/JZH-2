@@ -4,6 +4,7 @@ import com.prison.Result;
 import com.prison.dto.MedicalRecordDTO;
 import com.prison.entity.MedicalRecord;
 import com.prison.service.MedicalRecordService;
+import com.prison.vo.MedicalTimelineVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -37,6 +38,18 @@ public class MedicalRecordController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'VIEWER')")
     public Result<MedicalRecord> getById(@PathVariable Long id) {
         return Result.success(medicalRecordService.getById(id));
+    }
+
+    @GetMapping("/prisoner/{prisonerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'VIEWER')")
+    public Result<List<MedicalRecord>> listByPrisonerId(@PathVariable Long prisonerId) {
+        return Result.success(medicalRecordService.listByPrisonerId(prisonerId));
+    }
+
+    @GetMapping("/timeline/{prisonerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'VIEWER')")
+    public Result<MedicalTimelineVO> timeline(@PathVariable Long prisonerId) {
+        return Result.success(medicalRecordService.getTimelineByPrisonerId(prisonerId));
     }
 
     @PostMapping

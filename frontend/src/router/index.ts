@@ -92,6 +92,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '医疗记录', icon: 'FirstAidKit' }
       },
       {
+        path: 'medical-timeline',
+        name: 'MedicalTimeline',
+        component: () => import('@/views/MedicalTimelineView.vue'),
+        meta: { title: '医疗时间轴档案', icon: 'ChatLine' }
+      },
+      {
         path: 'follow-up',
         name: 'FollowUp',
         component: () => import('@/views/FollowUpWorkbench.vue'),

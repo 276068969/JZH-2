@@ -64,7 +64,15 @@ const iconMap: Record<string, string> = {
   'Date': 'Calendar',
   'Management': 'Management',
   'Setting': 'Setting',
-  'Document': 'Document'
+  'Document': 'Document',
+  'ChatLine': 'ChatLineRound',
+  'ChatDotRound': 'ChatDotRound',
+  'Stethoscope': 'Stethoscope',
+  'CircleCheck': 'CircleCheck',
+  'Clock': 'Clock',
+  'StarFilled': 'StarFilled',
+  'Place': 'LocationFilled',
+  'Switch': 'Switch'
 }
 </script>
 
