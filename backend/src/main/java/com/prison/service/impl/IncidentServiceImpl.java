@@ -127,18 +127,18 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
         }
 
         if (StringUtils.hasText(dto.getStatus()) && !dto.getStatus().equals(existing.getStatus())) {
-            Incident temp = new Incident();
-            BeanUtils.copyProperties(dto, temp);
-            if (!StringUtils.hasText(temp.getHandlerResult())) {
-                temp.setHandlerResult(existing.getHandlerResult());
+            Incident validateContext = new Incident();
+            BeanUtils.copyProperties(existing, validateContext);
+            if (StringUtils.hasText(dto.getHandlerResult())) {
+                validateContext.setHandlerResult(dto.getHandlerResult());
             }
-            if (temp.getSeverity() == null) {
-                temp.setSeverity(existing.getSeverity());
+            if (dto.getRelatedPrisonerId() != null) {
+                validateContext.setRelatedPrisonerId(dto.getRelatedPrisonerId());
             }
-            if (temp.getRelatedPrisonerId() == null) {
-                temp.setRelatedPrisonerId(existing.getRelatedPrisonerId());
+            if (StringUtils.hasText(dto.getSeverity())) {
+                validateContext.setSeverity(dto.getSeverity());
             }
-            validateStatusTransition(temp, dto.getStatus());
+            validateStatusTransition(validateContext, dto.getStatus());
         }
 
         Incident incident = new Incident();
