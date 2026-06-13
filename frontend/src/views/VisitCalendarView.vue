@@ -220,6 +220,7 @@ function getVisitTypeInfo(type: string) {
 }
 
 function getRelationLabel(relation: string) {
+  if (!relation) return '-'
   return relationMap[relation] || relation
 }
 
@@ -383,7 +384,7 @@ onMounted(() => {
                   @click.stop="showDetail(item)"
                 >
                   <div class="event-top">
-                    <el-tag size="small" :type="getVisitTypeInfo(item.visitType).tag" effect="plain">
+                    <el-tag v-if="item.visitType" size="small" :type="getVisitTypeInfo(item.visitType).tag" effect="plain">
                       {{ getVisitTypeInfo(item.visitType).label }}
                     </el-tag>
                     <span class="event-status" :style="{ color: getStatusInfo(item.status).color }">
@@ -427,7 +428,7 @@ onMounted(() => {
                   @click.stop="showDetail(item)"
                 >
                   <div class="event-top">
-                    <el-tag size="small" :type="getVisitTypeInfo(item.visitType).tag" effect="plain">
+                    <el-tag v-if="item.visitType" size="small" :type="getVisitTypeInfo(item.visitType).tag" effect="plain">
                       {{ getVisitTypeInfo(item.visitType).label }}
                     </el-tag>
                     <span class="event-status" :style="{ color: getStatusInfo(item.status).color }">
@@ -481,7 +482,7 @@ onMounted(() => {
           <el-tag :type="getStatusInfo(selectedItem.status).type" size="large" effect="light">
             {{ getStatusInfo(selectedItem.status).label }}
           </el-tag>
-          <el-tag :type="getVisitTypeInfo(selectedItem.visitType).tag" size="large">
+          <el-tag v-if="selectedItem.visitType" :type="getVisitTypeInfo(selectedItem.visitType).tag" size="large">
             {{ getVisitTypeInfo(selectedItem.visitType).label }}会见
           </el-tag>
         </div>

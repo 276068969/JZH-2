@@ -19,8 +19,11 @@ public class Visitor {
     private LocalDate visitDate;
     private String visitTimeSlot;
     private String status;
+    @TableField(exist = false)
     private String idCardPhoto;
+    @TableField(exist = false)
     private Integer visitorCount;
+    @TableField(exist = false)
     private String purpose;
     @TableField(exist = false)
     private Long approveGuardId;
@@ -28,11 +31,13 @@ public class Visitor {
     private String approveRemark;
     @TableField(exist = false)
     private LocalDateTime approveTime;
+    @TableField(exist = false)
     private String visitType;
     @TableField(exist = false)
     private LocalDateTime actualStartTime;
     @TableField(exist = false)
     private LocalDateTime actualEndTime;
+    @TableField(exist = false)
     private String remark;
 
     @TableField(fill = FieldFill.INSERT)

@@ -148,13 +148,10 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
                 Visitor::getId,
                 Visitor::getVisitorName,
                 Visitor::getRelation,
-                Visitor::getVisitType,
                 Visitor::getPrisonerId,
                 Visitor::getVisitDate,
                 Visitor::getVisitTimeSlot,
-                Visitor::getStatus,
-                Visitor::getVisitorCount,
-                Visitor::getPurpose
+                Visitor::getStatus
         );
         if (queryDTO.getStartDate() != null) {
             wrapper.ge(Visitor::getVisitDate, queryDTO.getStartDate());
@@ -164,9 +161,6 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         }
         if (StringUtils.hasText(queryDTO.getStatus())) {
             wrapper.eq(Visitor::getStatus, queryDTO.getStatus());
-        }
-        if (StringUtils.hasText(queryDTO.getVisitType())) {
-            wrapper.eq(Visitor::getVisitType, queryDTO.getVisitType());
         }
         wrapper.orderByAsc(Visitor::getVisitDate, Visitor::getVisitTimeSlot);
         List<Visitor> visitors = list(wrapper);
