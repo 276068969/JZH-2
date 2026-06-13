@@ -4,18 +4,30 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.prison.dto.VisitorApprovalDTO;
+import com.prison.dto.VisitorCalendarQueryDTO;
+import com.prison.entity.Prisoner;
 import com.prison.entity.Visitor;
 import com.prison.mapper.VisitorMapper;
+import com.prison.service.PrisonerService;
 import com.prison.service.VisitorService;
+import com.prison.vo.VisitorCalendarVO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> implements VisitorService {
+
+    private final PrisonerService prisonerService;
 
     @Override
     public Page<Visitor> pageVisitors(int page, int size, String keyword, String status, String visitType) {
@@ -126,6 +138,55 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
                 .ne(Visitor::getVisitType, "LAWYER")
                 .or(w -> w.isNull(Visitor::getVisitType))
                 .count());
+        return result;
+    }
+
+    @Override
+    public List<VisitorCalendarVO> getCalendarList(VisitorCalendarQueryDTO queryDTO) {
+        LambdaQueryWrapper<Visitor> wrapper = new LambdaQueryWrapper<>();
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(Visitor::getVisitDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(Visitor::getVisitDate, queryDTO.getEndDate());
+        }
+        if (StringUtils.hasText(queryDTO.getStatus())) {
+            wrapper.eq(Visitor::getStatus, queryDTO.getStatus());
+        }
+        if (StringUtils.hasText(queryDTO.getVisitType())) {
+            wrapper.eq(Visitor::getVisitType, queryDTO.getVisitType());
+        }
+        wrapper.orderByAsc(Visitor::getVisitDate, Visitor::getVisitTimeSlot);
+        List<Visitor> visitors = list(wrapper);
+
+        if (visitors.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> prisonerIds = visitors.stream()
+                .map(Visitor::getPrisonerId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Prisoner> prisonerMap = new HashMap<>();
+        if (!prisonerIds.isEmpty()) {
+            List<Prisoner> prisoners = prisonerService.listByIds(prisonerIds);
+            prisonerMap = prisoners.stream()
+                    .collect(Collectors.toMap(Prisoner::getId, p -> p));
+        }
+
+        List<VisitorCalendarVO> result = new ArrayList<>();
+        for (Visitor visitor : visitors) {
+            VisitorCalendarVO vo = new VisitorCalendarVO();
+            BeanUtils.copyProperties(visitor, vo);
+            Prisoner prisoner = prisonerMap.get(visitor.getPrisonerId());
+            if (prisoner != null) {
+                vo.setPrisonerName(prisoner.getName());
+                vo.setPrisonerNumber(prisoner.getPrisonerNumber());
+            }
+            result.add(vo);
+        }
         return result;
     }
 }

@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '访客管理', icon: 'User' }
       },
       {
+        path: 'visit-calendar',
+        name: 'VisitCalendar',
+        component: () => import('@/views/VisitCalendarView.vue'),
+        meta: { title: '会见日历', icon: 'Date' }
+      },
+      {
         path: 'medical',
         name: 'Medical',
         component: () => import('@/views/MedicalRecordList.vue'),

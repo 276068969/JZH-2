@@ -2,15 +2,18 @@ package com.prison.controller;
 
 import com.prison.Result;
 import com.prison.dto.VisitorApprovalDTO;
+import com.prison.dto.VisitorCalendarQueryDTO;
 import com.prison.dto.VisitorDTO;
 import com.prison.entity.Visitor;
 import com.prison.service.VisitorService;
+import com.prison.vo.VisitorCalendarVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +63,21 @@ public class VisitorController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
     public Result<Map<String, Long>> typeStatistics() {
         return Result.success(visitorService.getTypeStatistics());
+    }
+
+    @GetMapping("/calendar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<List<VisitorCalendarVO>> calendar(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String visitType) {
+        VisitorCalendarQueryDTO queryDTO = new VisitorCalendarQueryDTO();
+        queryDTO.setStartDate(startDate);
+        queryDTO.setEndDate(endDate);
+        queryDTO.setStatus(status);
+        queryDTO.setVisitType(visitType);
+        return Result.success(visitorService.getCalendarList(queryDTO));
     }
 
     @PostMapping

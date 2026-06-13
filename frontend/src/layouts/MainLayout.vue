@@ -61,6 +61,7 @@ const iconMap: Record<string, string> = {
   'User': 'User',
   'FirstAidKit': 'FirstAidKit',
   'Calendar': 'Calendar',
+  'Date': 'Calendar',
   'Management': 'Management',
   'Setting': 'Setting',
   'Document': 'Document'

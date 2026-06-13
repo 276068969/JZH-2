@@ -3,8 +3,11 @@ package com.prison.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.prison.dto.VisitorApprovalDTO;
+import com.prison.dto.VisitorCalendarQueryDTO;
 import com.prison.entity.Visitor;
+import com.prison.vo.VisitorCalendarVO;
 
+import java.util.List;
 import java.util.Map;
 
 public interface VisitorService extends IService<Visitor> {
@@ -23,4 +26,6 @@ public interface VisitorService extends IService<Visitor> {
     Map<String, Long> getStatusStatistics();
 
     Map<String, Long> getTypeStatistics();
+
+    List<VisitorCalendarVO> getCalendarList(VisitorCalendarQueryDTO queryDTO);
 }
