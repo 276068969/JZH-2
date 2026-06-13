@@ -57,6 +57,8 @@ const filterForm = ref({
   visitType: ''
 })
 
+const fetchError = ref<string | null>(null)
+
 const detailVisible = ref(false)
 const selectedItem = ref<VisitorCalendarItem | null>(null)
 
@@ -146,6 +148,7 @@ const monthStats = computed(() => {
 
 async function fetchCalendarData() {
   loading.value = true
+  fetchError.value = null
   try {
     let startDate: string, endDate: string
     if (viewMode.value === 'month') {
@@ -165,9 +168,14 @@ async function fetchCalendarData() {
     })
     if (res.data.code === 200) {
       calendarData.value = res.data.data || []
+    } else {
+      throw new Error(res.data.message || '接口返回异常')
     }
-  } catch (e) {
-    ElMessage.error('获取日历数据失败')
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || e?.message || '获取日历数据失败'
+    fetchError.value = msg
+    calendarData.value = []
+    ElMessage.error(msg)
   } finally {
     loading.value = false
   }
@@ -247,7 +255,28 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="stats-row">
+    <el-alert
+      v-if="fetchError"
+      type="error"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 16px"
+    >
+      <template #title>
+        <div class="error-title">
+          <span>加载会见数据失败：{{ fetchError }}</span>
+          <el-button type="primary" size="small" @click="fetchCalendarData" style="margin-left: 12px">
+            <el-icon style="margin-right: 4px"><Refresh /></el-icon>
+            重新加载
+          </el-button>
+          <el-button size="small" @click="goToList" style="margin-left: 8px">
+            切换到列表视图
+          </el-button>
+        </div>
+      </template>
+    </el-alert>
+
+    <div class="stats-row" v-if="!fetchError">
       <div class="stat-chip total">
         <span class="chip-label">本月总计</span>
         <span class="chip-value">{{ monthStats.total }}</span>
@@ -308,7 +337,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="calendar-container">
+    <div class="calendar-container" v-if="!fetchError">
       <div class="weekday-header">
         <div v-for="day in weekDays" :key="day" class="weekday-cell" :class="{ weekend: day === '日' || day === '六' }">
           {{ day }}
@@ -430,6 +459,19 @@ onMounted(() => {
             <span>暂无安排</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div v-else class="error-placeholder">
+      <el-icon :size="64" color="#f56c6c"><Warning /></el-icon>
+      <p class="error-placeholder-title">日历数据加载失败</p>
+      <p class="error-placeholder-desc">{{ fetchError }}</p>
+      <div class="error-placeholder-actions">
+        <el-button type="primary" @click="fetchCalendarData">
+          <el-icon style="margin-right: 4px"><Refresh /></el-icon>
+          重新加载
+        </el-button>
+        <el-button @click="goToList">切换到列表视图</el-button>
       </div>
     </div>
 
@@ -922,5 +964,42 @@ onMounted(() => {
   padding: 0 4px;
   border-radius: 3px;
   font-size: 10px;
+}
+
+.error-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.error-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  border: 1px dashed #fbc4c4;
+  border-radius: 8px;
+  background: #fff7f7;
+}
+
+.error-placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f56c6c;
+  margin: 16px 0 6px 0;
+}
+
+.error-placeholder-desc {
+  font-size: 13px;
+  color: #909399;
+  margin: 0 0 20px 0;
+  text-align: center;
+  max-width: 520px;
+}
+
+.error-placeholder-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>

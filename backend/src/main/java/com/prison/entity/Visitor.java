@@ -22,11 +22,16 @@ public class Visitor {
     private String idCardPhoto;
     private Integer visitorCount;
     private String purpose;
+    @TableField(exist = false)
     private Long approveGuardId;
+    @TableField(exist = false)
     private String approveRemark;
+    @TableField(exist = false)
     private LocalDateTime approveTime;
     private String visitType;
+    @TableField(exist = false)
     private LocalDateTime actualStartTime;
+    @TableField(exist = false)
     private LocalDateTime actualEndTime;
     private String remark;
 

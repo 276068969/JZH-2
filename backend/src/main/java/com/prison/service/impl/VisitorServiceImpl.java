@@ -144,6 +144,18 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
     @Override
     public List<VisitorCalendarVO> getCalendarList(VisitorCalendarQueryDTO queryDTO) {
         LambdaQueryWrapper<Visitor> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(
+                Visitor::getId,
+                Visitor::getVisitorName,
+                Visitor::getRelation,
+                Visitor::getVisitType,
+                Visitor::getPrisonerId,
+                Visitor::getVisitDate,
+                Visitor::getVisitTimeSlot,
+                Visitor::getStatus,
+                Visitor::getVisitorCount,
+                Visitor::getPurpose
+        );
         if (queryDTO.getStartDate() != null) {
             wrapper.ge(Visitor::getVisitDate, queryDTO.getStartDate());
         }
