@@ -15,6 +15,9 @@ public interface PrisonerMapper extends BaseMapper<Prisoner> {
     @Select("SELECT COUNT(*) FROM prisoners WHERE cell_id = #{cellId} AND deleted = 0")
     int countByCellId(@Param("cellId") Long cellId);
 
+    @Select("SELECT COUNT(*) FROM prisoners WHERE area_id = #{areaId} AND deleted = 0")
+    int countByAreaId(@Param("areaId") Long areaId);
+
     @Select("SELECT MONTH(entry_date) AS m, COUNT(*) AS cnt FROM prisoners WHERE YEAR(entry_date) = #{year} AND deleted = 0 GROUP BY MONTH(entry_date) ORDER BY m")
     List<Map<String, Object>> countNewEntriesByMonth(@Param("year") int year);
 

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.prison.mapper.PrisonerTransferMapper">
+
+    <sql id="transferCondition">
+        t.deleted = 0
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                t.prisoner_name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR t.prisoner_number LIKE CONCAT('%', #{q.keyword}, '%')
+                OR t.from_area_name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR t.to_area_name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR t.from_cell_number LIKE CONCAT('%', #{q.keyword}, '%')
+                OR t.to_cell_number LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        <if test="q.prisonerId != null">
+            AND t.prisoner_id = #{q.prisonerId}
+        </if>
+        <if test="q.fromAreaId != null">
+            AND t.from_area_id = #{q.fromAreaId}
+        </if>
+        <if test="q.toAreaId != null">
+            AND t.to_area_id = #{q.toAreaId}
+        </if>
+        <if test="q.fromCellId != null">
+            AND t.from_cell_id = #{q.fromCellId}
+        </if>
+        <if test="q.toCellId != null">
+            AND t.to_cell_id = #{q.toCellId}
+        </if>
+        <if test="q.transferType != null and q.transferType != ''">
+            AND t.transfer_type = #{q.transferType}
+        </if>
+        <if test="q.startTime != null">
+            AND t.transfer_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND t.transfer_time &lt;= #{q.endTime}
+        </if>
+    </sql>
+
+    <select id="pageTransfers" resultType="com.prison.entity.PrisonerTransfer">
+        SELECT t.*
+        FROM prisoner_transfers t
+        WHERE <include refid="transferCondition"/>
+        ORDER BY t.transfer_time DESC, t.id DESC
+    </select>
+
+</mapper>

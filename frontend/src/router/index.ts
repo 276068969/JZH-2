@@ -50,6 +50,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '监舍管理', icon: 'HomeFilled' }
       },
       {
+        path: 'prisoner-transfers',
+        name: 'PrisonerTransfers',
+        component: () => import('@/views/PrisonerTransferList.vue'),
+        meta: { title: '调监调舍', icon: 'Switch' }
+      },
+      {
         path: 'patrols',
         name: 'Patrols',
         component: () => import('@/views/PatrolList.vue'),

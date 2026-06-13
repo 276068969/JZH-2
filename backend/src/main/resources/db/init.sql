@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS medical_records;
 DROP TABLE IF EXISTS visitors;
 DROP TABLE IF EXISTS incidents;
 DROP TABLE IF EXISTS patrols;
+DROP TABLE IF EXISTS prisoner_transfers;
 DROP TABLE IF EXISTS prisoners;
 DROP TABLE IF EXISTS guards;
 DROP TABLE IF EXISTS cells;
@@ -82,6 +83,35 @@ CREATE TABLE prisoners (
     deleted TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (area_id) REFERENCES prison_areas(id),
     FOREIGN KEY (cell_id) REFERENCES cells(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE prisoner_transfers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    prisoner_id BIGINT NOT NULL COMMENT '服刑人员ID',
+    prisoner_number VARCHAR(50) NOT NULL COMMENT '服刑人员编号',
+    prisoner_name VARCHAR(50) NOT NULL COMMENT '服刑人员姓名',
+    from_area_id BIGINT COMMENT '原监区ID',
+    from_area_name VARCHAR(100) COMMENT '原监区名称',
+    from_cell_id BIGINT COMMENT '原监舍ID',
+    from_cell_number VARCHAR(50) COMMENT '原监舍编号',
+    to_area_id BIGINT COMMENT '新监区ID',
+    to_area_name VARCHAR(100) COMMENT '新监区名称',
+    to_cell_id BIGINT COMMENT '新监舍ID',
+    to_cell_number VARCHAR(50) COMMENT '新监舍编号',
+    transfer_type VARCHAR(20) NOT NULL COMMENT '调动类型: AREA_TRANSFER(调监), CELL_TRANSFER(调舍), BOTH(监区监舍都调)',
+    transfer_time DATETIME NOT NULL COMMENT '调动时间',
+    transfer_reason VARCHAR(255) COMMENT '调动原因',
+    operator_id BIGINT COMMENT '操作人ID',
+    operator_name VARCHAR(50) COMMENT '操作人姓名',
+    remark TEXT COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    FOREIGN KEY (prisoner_id) REFERENCES prisoners(id),
+    FOREIGN KEY (from_area_id) REFERENCES prison_areas(id),
+    FOREIGN KEY (from_cell_id) REFERENCES cells(id),
+    FOREIGN KEY (to_area_id) REFERENCES prison_areas(id),
+    FOREIGN KEY (to_cell_id) REFERENCES cells(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE guards (
@@ -224,6 +254,13 @@ INSERT INTO prisoners (prisoner_number, name, gender, id_card, birth_date, nativ
 ('P20240009', '冯某', '女', '440109198810108765', '1988-10-10', '广东省肇庆市', '贪污罪', 36, '2024-06-01', '2026-09-01', 3, 6, '本科', '已婚', 'LOW', 'MEDICAL_PAROLE'),
 ('P20240010', '陈某', '男', '440110199204042345', '1992-04-04', '广东省汕头市', '抢劫罪', 48, '2024-04-15', '2027-04-14', 4, 9, '高中', '未婚', 'EXTREME', 'INCARCERATED'),
 ('P20240011', '杨某', '男', '440111199708085678', '1997-08-08', '广东省湛江市', '盗窃罪', 12, '2025-09-01', '2026-06-15', 1, 1, '初中', '未婚', 'LOW', 'TRANSFERRED');
+
+INSERT INTO prisoner_transfers (prisoner_id, prisoner_number, prisoner_name, from_area_id, from_area_name, from_cell_id, from_cell_number, to_area_id, to_area_name, to_cell_id, to_cell_number, transfer_type, transfer_time, transfer_reason, operator_id, operator_name, remark) VALUES
+(1, 'P20240001', '赵某', 2, '男监二区', 4, 'M002-201', 1, '男监一区', 1, 'M001-101', 'BOTH', '2024-06-01 10:00:00', '表现良好，调回普通监区', 1, '刘警员', '调监调舍同时进行'),
+(2, 'P20240002', '钱某', 1, '男监一区', 1, 'M001-101', 1, '男监一区', 2, 'M001-102', 'CELL_TRANSFER', '2024-05-15 14:30:00', '原监舍满员调整', 2, '陈警员', '监区内调动'),
+(11, 'P20240011', '杨某', 2, '男监二区', 4, 'M002-201', 1, '男监一区', 1, 'M001-101', 'BOTH', '2025-10-10 09:00:00', '刑期较短，转至低戒备区', 2, '陈警员', '表现良好，降低戒备等级'),
+(8, 'P20240008', '王某', 2, '男监二区', 5, 'M002-202', 1, '男监一区', 2, 'M001-102', 'BOTH', '2025-04-20 11:00:00', '危险等级调整', 1, '刘警员', '因违纪行为上调戒备等级'),
+(7, 'P20240007', '郑某', 1, '男监一区', 3, 'M001-103', 2, '男监二区', 4, 'M002-201', 'BOTH', '2024-09-15 16:00:00', '监区人员均衡调整', 2, '陈警员', '常规人员调整');
 
 INSERT INTO guards (guard_number, name, gender, id_card, phone, email, position, area_id, entry_date, status) VALUES
 ('G2024001', '刘警员', '男', '440106198001011111', '13900000001', 'liu@prison.com', 'GUARD', 1, '2020-01-15', 'ACTIVE'),
