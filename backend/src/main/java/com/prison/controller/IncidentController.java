@@ -41,7 +41,7 @@ public class IncidentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
     public Result<?> getStatuses() {
         List<Map<String, Object>> statuses = Arrays.stream(IncidentStatus.values())
-                .map(status -> Map.of(
+                .map(status -> Map.<String, Object>of(
                         "code", status.name(),
                         "description", status.getDescription(),
                         "order", status.getOrder()
