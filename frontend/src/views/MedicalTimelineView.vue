@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { get } from '@/utils/request'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled, Calendar, FirstAidKit, WarningFilled, OfficeBuilding,
-  ChatDotRound, Stethoscope, Clock, CircleCheck, StarFilled,
-  Management, Date, Place, User, Monitor
+  ChatDotRound, Clock, CircleCheck, StarFilled,
+  Management, Place, User, Monitor
 } from '@element-plus/icons-vue'
 
 interface Prisoner {
@@ -132,10 +132,12 @@ const filteredNodes = computed(() => {
 
 function getIconComponent(iconName: string) {
   const map: Record<string, any> = {
-    FirstAidKit, Stethoscope, WarningFilled, OfficeBuilding,
-    ChatDotRound, Calendar, CircleCheck, StarFilled, Clock, Date,
+    FirstAidKit, WarningFilled, OfficeBuilding,
+    ChatDotRound, Calendar, CircleCheck, StarFilled, Clock,
     Management, Place, User, Monitor, UserFilled
   }
+  map.Stethoscope = FirstAidKit
+  map.Date = Calendar
   return map[iconName] || FirstAidKit
 }
 
@@ -278,7 +280,7 @@ onMounted(() => {
           <div class="info-row">
             <div class="info-item" v-if="timelineData.areaName"><el-icon><OfficeBuilding /></el-icon> 监区：{{ timelineData.areaName }}</div>
             <div class="info-item" v-if="timelineData.cellNumber"><el-icon><Management /></el-icon> 监舍：{{ timelineData.cellNumber }}</div>
-            <div class="info-item" v-if="timelineData.healthStatus"><el-icon><Stethoscope /></el-icon> 健康状况：{{ timelineData.healthStatus }}</div>
+            <div class="info-item" v-if="timelineData.healthStatus"><el-icon><FirstAidKit /></el-icon> 健康状况：{{ timelineData.healthStatus }}</div>
           </div>
         </div>
       </div>
