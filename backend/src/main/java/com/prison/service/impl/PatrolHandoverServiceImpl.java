@@ -62,7 +62,7 @@ public class PatrolHandoverServiceImpl extends ServiceImpl<PatrolHandoverMapper,
         if (areaId != null) {
             wrapper.eq(PatrolHandover::getAreaId, areaId);
         }
-        wrapper.orderByDesc(PatrolHandover::getHandoverTime);
+        wrapper.orderByDesc(PatrolHandover::getCreateTime);
         wrapper.last("LIMIT " + (limit != null ? limit : 10));
         return list(wrapper);
     }

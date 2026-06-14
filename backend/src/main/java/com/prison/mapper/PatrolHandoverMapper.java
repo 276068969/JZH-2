@@ -13,6 +13,6 @@ public interface PatrolHandoverMapper extends BaseMapper<PatrolHandover> {
 
     Page<PatrolHandover> pageHandovers(Page<?> page, @Param("q") PatrolHandoverQueryDTO query);
 
-    @Select("SELECT * FROM patrol_handovers WHERE area_id = #{areaId} AND deleted = 0 ORDER BY handover_time DESC LIMIT 1")
+    @Select("SELECT * FROM patrol_handovers WHERE area_id = #{areaId} AND deleted = 0 ORDER BY create_time DESC LIMIT 1")
     PatrolHandover getLatestHandoverByArea(@Param("areaId") Long areaId);
 }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -25,9 +26,15 @@ public class DataInitializer implements CommandLineRunner {
     private final PrisonerMapper prisonerMapper;
     private final MedicalRecordMapper medicalRecordMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        try {
+            ensurePatrolHandoversTable();
+        } catch (Exception e) {
+            log.error("初始化patrol_handovers表失败", e);
+        }
         try {
             initAdminUser();
         } catch (Exception e) {
@@ -301,5 +308,46 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         log.info("复诊医疗记录初始化完成，共新增 {} 条", created + 2);
+    }
+
+    private void ensurePatrolHandoversTable() {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'patrol_handovers'",
+                    Long.class);
+            if (count != null && count > 0) {
+                log.info("patrol_handovers表已存在，跳过建表");
+                return;
+            }
+            log.info("patrol_handovers表不存在，开始创建...");
+            jdbcTemplate.execute("""
+                CREATE TABLE patrol_handovers (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    area_id BIGINT NOT NULL COMMENT '监区ID',
+                    area_name VARCHAR(100) NOT NULL COMMENT '监区名称',
+                    shift_type VARCHAR(20) NOT NULL COMMENT '班次类型: MORNING(早班), AFTERNOON(中班), NIGHT(晚班)',
+                    shift_start_time DATETIME NOT NULL COMMENT '班次开始时间',
+                    shift_end_time DATETIME NOT NULL COMMENT '班次结束时间',
+                    outgoing_guard_id BIGINT NOT NULL COMMENT '交班警员ID',
+                    outgoing_guard_name VARCHAR(50) NOT NULL COMMENT '交班警员姓名',
+                    incoming_guard_id BIGINT COMMENT '接班警员ID',
+                    incoming_guard_name VARCHAR(50) COMMENT '接班警员姓名',
+                    key_area_status TEXT COMMENT '重点区域情况',
+                    unfinished_items TEXT COMMENT '未完成事项',
+                    risk_points TEXT COMMENT '待跟进风险点',
+                    patrol_count INT NOT NULL DEFAULT 0 COMMENT '本班巡查次数',
+                    abnormal_count INT NOT NULL DEFAULT 0 COMMENT '本班异常次数',
+                    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING(待接班), CONFIRMED(已确认)',
+                    handover_time DATETIME COMMENT '交接班时间',
+                    remark TEXT COMMENT '备注',
+                    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    deleted TINYINT(1) NOT NULL DEFAULT 0
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+            log.info("patrol_handovers表创建成功");
+        } catch (Exception e) {
+            log.error("创建patrol_handovers表失败", e);
+        }
     }
 }
