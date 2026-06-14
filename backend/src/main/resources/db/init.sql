@@ -5,6 +5,7 @@ USE prison_db;
 DROP TABLE IF EXISTS medical_records;
 DROP TABLE IF EXISTS visitors;
 DROP TABLE IF EXISTS incidents;
+DROP TABLE IF EXISTS patrol_handovers;
 DROP TABLE IF EXISTS patrols;
 DROP TABLE IF EXISTS prisoner_transfers;
 DROP TABLE IF EXISTS prisoners;
@@ -145,6 +146,33 @@ CREATE TABLE patrols (
     deleted TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (guard_id) REFERENCES guards(id),
     FOREIGN KEY (area_id) REFERENCES prison_areas(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE patrol_handovers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    area_id BIGINT NOT NULL COMMENT '监区ID',
+    area_name VARCHAR(100) NOT NULL COMMENT '监区名称',
+    shift_type VARCHAR(20) NOT NULL COMMENT '班次类型: MORNING(早班), AFTERNOON(中班), NIGHT(晚班)',
+    shift_start_time DATETIME NOT NULL COMMENT '班次开始时间',
+    shift_end_time DATETIME NOT NULL COMMENT '班次结束时间',
+    outgoing_guard_id BIGINT NOT NULL COMMENT '交班警员ID',
+    outgoing_guard_name VARCHAR(50) NOT NULL COMMENT '交班警员姓名',
+    incoming_guard_id BIGINT COMMENT '接班警员ID',
+    incoming_guard_name VARCHAR(50) COMMENT '接班警员姓名',
+    key_area_status TEXT COMMENT '重点区域情况',
+    unfinished_items TEXT COMMENT '未完成事项',
+    risk_points TEXT COMMENT '待跟进风险点',
+    patrol_count INT NOT NULL DEFAULT 0 COMMENT '本班巡查次数',
+    abnormal_count INT NOT NULL DEFAULT 0 COMMENT '本班异常次数',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING(待接班), CONFIRMED(已确认)',
+    handover_time DATETIME COMMENT '交接班时间',
+    remark TEXT COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    FOREIGN KEY (area_id) REFERENCES prison_areas(id),
+    FOREIGN KEY (outgoing_guard_id) REFERENCES guards(id),
+    FOREIGN KEY (incoming_guard_id) REFERENCES guards(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE incidents (
@@ -291,6 +319,13 @@ INSERT INTO patrols (patrol_time, guard_id, area_id, patrol_type, result, descri
 ('2024-06-01 20:00:00', 3, 3, 'NIGHT', 'NORMAL', '夜间巡查无异常'),
 ('2024-06-02 08:00:00', 4, 4, 'KEY_AREA', 'NORMAL', '重点区域巡查正常'),
 ('2024-06-02 10:00:00', 5, 5, 'ROUTINE', 'NORMAL', '少管所巡查正常');
+
+INSERT INTO patrol_handovers (area_id, area_name, shift_type, shift_start_time, shift_end_time, outgoing_guard_id, outgoing_guard_name, incoming_guard_id, incoming_guard_name, key_area_status, unfinished_items, risk_points, patrol_count, abnormal_count, status, handover_time, remark) VALUES
+(1, '男监一区', 'MORNING', '2024-06-01 08:00:00', '2024-06-01 16:00:00', 1, '刘警员', 2, '陈警员', '各监舍秩序良好，重点监控室设备运行正常', '继续观察1号监舍服刑人员赵某情绪状态', '赵某近期情绪波动较大，需密切关注', 4, 0, 'CONFIRMED', '2024-06-01 16:00:00', '早班交接顺利'),
+(1, '男监一区', 'AFTERNOON', '2024-06-01 16:00:00', '2024-06-02 00:00:00', 2, '陈警员', 1, '刘警员', '监区秩序平稳，夜间巡查已安排', '待跟进赵某心理疏导安排', '无新增风险点', 3, 0, 'CONFIRMED', '2024-06-01 23:55:00', '中班交接正常'),
+(2, '男监二区', 'MORNING', '2024-06-01 08:00:00', '2024-06-01 16:00:00', 2, '陈警员', 1, '刘警员', '劳动车间运行正常，人员清点无误', '202监舍维修进度需跟进', '孙某近期有违纪倾向', 5, 1, 'CONFIRMED', '2024-06-01 16:05:00', '早班有一起小摩擦已处理'),
+(3, '女监区', 'NIGHT', '2024-06-01 20:00:00', '2024-06-02 08:00:00', 3, '黄警员', 5, '林警员', '夜间巡查3次，均无异常', '李某心理咨询待跟进', '李某情绪低落，需持续关注', 3, 0, 'CONFIRMED', '2024-06-02 08:00:00', '夜班平稳'),
+(4, '高度戒备区', 'MORNING', '2024-06-02 08:00:00', '2024-06-02 16:00:00', 4, '吴警员', NULL, NULL, '高度戒备区一切正常，单人监舍管控到位', '可疑物品调查中，需继续跟进', '5号监舍周某为高危人员，需重点监控', 6, 1, 'PENDING', NULL, '待接班确认');
 
 INSERT INTO incidents (incident_title, incident_type, severity, area_id, report_guard_id, related_prisoner_id, occur_time, description, status) VALUES
 ('服刑人员口角纠纷', 'DISCIPLINE', 'LOW', 1, 1, 1, '2024-05-20 10:30:00', '两名服刑人员因生活琐事发生口角，已及时制止', 'RESOLVED'),

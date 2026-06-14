@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.prison.mapper.PatrolHandoverMapper">
+
+    <resultMap id="BaseResultMap" type="com.prison.entity.PatrolHandover">
+        <id column="id" property="id"/>
+        <result column="area_id" property="areaId"/>
+        <result column="area_name" property="areaName"/>
+        <result column="shift_type" property="shiftType"/>
+        <result column="shift_start_time" property="shiftStartTime"/>
+        <result column="shift_end_time" property="shiftEndTime"/>
+        <result column="outgoing_guard_id" property="outgoingGuardId"/>
+        <result column="outgoing_guard_name" property="outgoingGuardName"/>
+        <result column="incoming_guard_id" property="incomingGuardId"/>
+        <result column="incoming_guard_name" property="incomingGuardName"/>
+        <result column="key_area_status" property="keyAreaStatus"/>
+        <result column="unfinished_items" property="unfinishedItems"/>
+        <result column="risk_points" property="riskPoints"/>
+        <result column="patrol_count" property="patrolCount"/>
+        <result column="abnormal_count" property="abnormalCount"/>
+        <result column="status" property="status"/>
+        <result column="handover_time" property="handoverTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="pageHandovers" resultMap="BaseResultMap">
+        SELECT * FROM patrol_handovers
+        <where>
+            deleted = 0
+            <if test="q.areaId != null">
+                AND area_id = #{q.areaId}
+            </if>
+            <if test="q.shiftType != null and q.shiftType != ''">
+                AND shift_type = #{q.shiftType}
+            </if>
+            <if test="q.status != null and q.status != ''">
+                AND status = #{q.status}
+            </if>
+            <if test="q.guardId != null">
+                AND (outgoing_guard_id = #{q.guardId} OR incoming_guard_id = #{q.guardId})
+            </if>
+            <if test="q.startDate != null">
+                AND DATE(shift_start_time) &gt;= #{q.startDate}
+            </if>
+            <if test="q.endDate != null">
+                AND DATE(shift_end_time) &lt;= #{q.endDate}
+            </if>
+        </where>
+        ORDER BY handover_time DESC
+    </select>
+
+</mapper>
