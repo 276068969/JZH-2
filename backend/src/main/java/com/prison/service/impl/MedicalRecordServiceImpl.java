@@ -56,6 +56,8 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
     private static final Map<String, String> RESULT_LABELS = Map.of(
             "RECOVERED", "已治愈",
             "TREATING", "治疗中",
+            "STABLE", "病情稳定",
+            "CURED", "已痊愈",
             "TRANSFERRED", "已转院",
             "DECEASED", "已故"
     );
@@ -63,6 +65,8 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
     private static final Map<String, String> RESULT_TAG_TYPES = Map.of(
             "RECOVERED", "success",
             "TREATING", "warning",
+            "STABLE", "",
+            "CURED", "success",
             "TRANSFERRED", "info",
             "DECEASED", "danger"
     );
@@ -83,6 +87,10 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
             "OVERDUE", "danger"
     );
 
+    private static String safeGet(Map<String, String> map, String key, String defaultValue) {
+        return key != null ? map.getOrDefault(key, defaultValue) : defaultValue;
+    }
+
     @Override
     public Page<MedicalRecord> pageMedicalRecords(int page, int size, String keyword) {
         LambdaQueryWrapper<MedicalRecord> wrapper = new LambdaQueryWrapper<>();
@@ -101,7 +109,15 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
     public MedicalTimelineVO getTimelineByPrisonerId(Long prisonerId) {
         Prisoner prisoner = prisonerMapper.selectById(prisonerId);
         if (prisoner == null) {
-            throw new IllegalArgumentException("服刑人员不存在");
+            MedicalTimelineVO empty = new MedicalTimelineVO();
+            empty.setPrisonerId(prisonerId);
+            empty.setNodes(Collections.emptyList());
+            empty.setTotalRecords(0L);
+            empty.setTreatingCount(0L);
+            empty.setRecoveredCount(0L);
+            empty.setFollowUpPendingCount(0L);
+            empty.setFollowUpMissedCount(0L);
+            return empty;
         }
 
         List<MedicalRecord> records = listByPrisonerId(prisonerId);
@@ -167,7 +183,12 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
             }
         }
 
-        nodes.sort(Comparator.comparing(MedicalTimelineNodeVO::getEventDate).reversed());
+        nodes.sort((a, b) -> {
+            if (a.getEventDate() == null && b.getEventDate() == null) return 0;
+            if (a.getEventDate() == null) return 1;
+            if (b.getEventDate() == null) return -1;
+            return b.getEventDate().compareTo(a.getEventDate());
+        });
 
         timeline.setNodes(nodes);
         return timeline;
@@ -188,9 +209,9 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
 
         String medicalType = record.getMedicalType();
         node.setMedicalType(medicalType);
-        node.setMedicalTypeLabel(MEDICAL_TYPE_LABELS.getOrDefault(medicalType, medicalType));
-        node.setColor(MEDICAL_TYPE_COLORS.getOrDefault(medicalType, "#909399"));
-        node.setIcon(MEDICAL_TYPE_ICONS.getOrDefault(medicalType, "FirstAidKit"));
+        node.setMedicalTypeLabel(safeGet(MEDICAL_TYPE_LABELS, medicalType, medicalType));
+        node.setColor(safeGet(MEDICAL_TYPE_COLORS, medicalType, "#909399"));
+        node.setIcon(safeGet(MEDICAL_TYPE_ICONS, medicalType, "FirstAidKit"));
 
         node.setDiagnosis(record.getDiagnosis());
         node.setTreatment(record.getTreatment());
@@ -199,8 +220,8 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
 
         String result = record.getResult();
         node.setResult(result);
-        node.setResultLabel(RESULT_LABELS.getOrDefault(result, result));
-        node.setResultTagType(RESULT_TAG_TYPES.getOrDefault(result, "info"));
+        node.setResultLabel(safeGet(RESULT_LABELS, result, result));
+        node.setResultTagType(safeGet(RESULT_TAG_TYPES, result, "info"));
 
         node.setMedicine(record.getMedicine());
 
