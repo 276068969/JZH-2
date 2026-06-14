@@ -449,7 +449,9 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
                     comparator = Comparator.comparingInt(v -> v.getOngoingTreatmentCount() == null ? 0 : v.getOngoingTreatmentCount());
             case "lastIncidentTime" ->
                     comparator = Comparator.comparing(v -> v.getLastIncidentTime() == null ? LocalDateTime.MIN : v.getLastIncidentTime());
-            case "riskScore", default ->
+            case "riskScore" ->
+                    comparator = Comparator.comparingInt(v -> v.getRiskScore() == null ? 0 : v.getRiskScore());
+            default ->
                     comparator = Comparator.comparingInt(v -> v.getRiskScore() == null ? 0 : v.getRiskScore());
         }
         if (desc) {
