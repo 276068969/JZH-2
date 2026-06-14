@@ -38,7 +38,7 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
     private final CellMapper cellMapper;
 
     private static final Set<String> HIGH_DANGER_LEVELS = Set.of("HIGH", "EXTREME");
-    private static final Set<String> ACTIVE_PRISONER_STATUSES = Set.of("ACTIVE", "SERVING", "INCARCERATED");
+    private static final Set<String> ACTIVE_PRISONER_STATUSES = Set.of("INCARCERATED", "在押");
 
     @Override
     public Page<ObservationListVO> pageObservationList(ObservationListQueryDTO queryDTO) {
@@ -93,6 +93,8 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
         }
         if (StringUtils.hasText(queryDTO.getPrisonerStatus())) {
             prisonerWrapper.eq(Prisoner::getStatus, queryDTO.getPrisonerStatus());
+        } else {
+            prisonerWrapper.in(Prisoner::getStatus, ACTIVE_PRISONER_STATUSES);
         }
 
         List<Prisoner> prisoners = list(prisonerWrapper);
@@ -181,10 +183,18 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
 
         if (!allObservedIds.isEmpty()) {
             List<Prisoner> prisoners = listByIds(allObservedIds);
+            List<Prisoner> activePrisoners = prisoners.stream()
+                    .filter(p -> p.getStatus() != null
+                            && ACTIVE_PRISONER_STATUSES.contains(p.getStatus()))
+                    .collect(Collectors.toList());
 
-            long extremeCount = prisoners.stream()
+            Set<Long> activeIds = activePrisoners.stream()
+                    .map(Prisoner::getId)
+                    .collect(Collectors.toSet());
+
+            long extremeCount = activePrisoners.stream()
                     .filter(p -> "EXTREME".equalsIgnoreCase(p.getDangerLevel())).count();
-            long highCount = prisoners.stream()
+            long highCount = activePrisoners.stream()
                     .filter(p -> "HIGH".equalsIgnoreCase(p.getDangerLevel())).count();
             stats.setExtremeDangerCount(extremeCount);
             stats.setHighDangerCount(highCount);
@@ -192,7 +202,7 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
             LocalDateTime thresholdTime = LocalDateTime.now().minusDays(days);
             long unresolvedHigh = incidentMapper.selectCount(
                     new LambdaQueryWrapper<Incident>()
-                            .in(Incident::getRelatedPrisonerId, allObservedIds)
+                            .in(Incident::getRelatedPrisonerId, activeIds)
                             .and(w -> w.in(Incident::getSeverity, "HIGH", "CRITICAL")
                                     .or().in(Incident::getSeverity, "高", "严重"))
                             .notIn(Incident::getStatus, "CLOSED", "RESOLVED", "已关闭", "已解决")
@@ -201,12 +211,12 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
 
             long ongoingTreat = medicalRecordMapper.selectCount(
                     new LambdaQueryWrapper<MedicalRecord>()
-                            .in(MedicalRecord::getPrisonerId, allObservedIds)
+                            .in(MedicalRecord::getPrisonerId, activeIds)
                             .eq(MedicalRecord::getResult, "TREATING")
             );
             stats.setOngoingTreatmentTotal(ongoingTreat);
 
-            Map<String, Long> byArea = prisoners.stream()
+            Map<String, Long> byArea = activePrisoners.stream()
                     .filter(p -> p.getAreaId() != null)
                     .map(p -> {
                         PrisonArea area = prisonAreaMapper.selectById(p.getAreaId());
@@ -215,10 +225,17 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
                     .collect(Collectors.groupingBy(n -> n, Collectors.counting()));
             stats.setByAreaDistribution(byArea);
 
-            Map<String, Long> byCrime = prisoners.stream()
+            Map<String, Long> byCrime = activePrisoners.stream()
                     .filter(p -> StringUtils.hasText(p.getCrimeType()))
                     .collect(Collectors.groupingBy(Prisoner::getCrimeType, Collectors.counting()));
             stats.setByCrimeTypeDistribution(byCrime);
+
+            stats.setTotalObserved((long) activeIds.size());
+            stats.setByDangerLevelCount(highDangerPrisonerIds.stream().filter(activeIds::contains).count());
+            stats.setByRecentIncidentCount(recentIncidentPrisonerIds.stream().filter(activeIds::contains).count());
+            stats.setByOngoingTreatmentCount(ongoingTreatmentPrisonerIds.stream().filter(activeIds::contains).count());
+            long multipleRisk = multipleRiskIds.stream().filter(activeIds::contains).count();
+            stats.setMultipleRiskCount(multipleRisk);
         } else {
             stats.setExtremeDangerCount(0L);
             stats.setHighDangerCount(0L);
@@ -234,10 +251,11 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
     private Set<Long> collectHighDangerPrisoners() {
         LambdaQueryWrapper<Prisoner> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(w -> w
-                .in(Prisoner::getDangerLevel, HIGH_DANGER_LEVELS)
-                .or()
-                .in(Prisoner::getDangerLevel, "高", "极高")
-        );
+                        .in(Prisoner::getDangerLevel, HIGH_DANGER_LEVELS)
+                        .or()
+                        .in(Prisoner::getDangerLevel, "高", "极高")
+                )
+                .in(Prisoner::getStatus, ACTIVE_PRISONER_STATUSES);
         List<Prisoner> list = list(wrapper);
         return list.stream().map(Prisoner::getId).collect(Collectors.toSet());
     }
@@ -248,10 +266,19 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
         wrapper.ge(Incident::getOccurTime, thresholdTime)
                 .isNotNull(Incident::getRelatedPrisonerId);
         List<Incident> list = incidentMapper.selectList(wrapper);
-        return list.stream()
+        Set<Long> prisonerIds = list.stream()
                 .map(Incident::getRelatedPrisonerId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+        if (prisonerIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        List<Prisoner> activePrisoners = list(
+                new LambdaQueryWrapper<Prisoner>()
+                        .in(Prisoner::getId, prisonerIds)
+                        .in(Prisoner::getStatus, ACTIVE_PRISONER_STATUSES)
+        );
+        return activePrisoners.stream().map(Prisoner::getId).collect(Collectors.toSet());
     }
 
     private Set<Long> collectOngoingTreatmentPrisoners() {
@@ -265,10 +292,19 @@ public class ObservationListServiceImpl extends ServiceImpl<PrisonerMapper, Pris
                 .and(w -> w.in(MedicalRecord::getFollowUpStatus, "PENDING", "MISSED")
                         .isNotNull(MedicalRecord::getFollowUpDate));
         List<MedicalRecord> list = medicalRecordMapper.selectList(wrapper);
-        return list.stream()
+        Set<Long> prisonerIds = list.stream()
                 .map(MedicalRecord::getPrisonerId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+        if (prisonerIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        List<Prisoner> activePrisoners = list(
+                new LambdaQueryWrapper<Prisoner>()
+                        .in(Prisoner::getId, prisonerIds)
+                        .in(Prisoner::getStatus, ACTIVE_PRISONER_STATUSES)
+        );
+        return activePrisoners.stream().map(Prisoner::getId).collect(Collectors.toSet());
     }
 
     private Map<Long, List<Incident>> getPrisonerIncidentsMap(Set<Long> prisonerIdSet) {
