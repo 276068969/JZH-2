@@ -179,12 +179,6 @@ const securityLevelMap: Record<string, { label: string; type: string }> = {
   STRICT: { label: '严格级', type: 'danger' }
 }
 
-const roomTypeMap: Record<string, string> = {
-  NORMAL: '普通会见室',
-  ISOLATION: '隔离会见室',
-  REMOTE: '远程会见室'
-}
-
 const tableData = ref<Visitor[]>([])
 const statusStats = ref<StatusStats>({
   pending: 0,
@@ -685,10 +679,6 @@ function getMeetingStageLabel(stage: string) {
 
 function getSecurityLevelInfo(level: string) {
   return securityLevelMap[level] || { label: level || '-', type: 'info' }
-}
-
-function getRoomTypeLabel(roomType: string) {
-  return roomTypeMap[roomType] || '-'
 }
 
 function formatDate(dateStr: string) {
