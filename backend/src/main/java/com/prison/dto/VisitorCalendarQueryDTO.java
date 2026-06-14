@@ -10,4 +10,5 @@ public class VisitorCalendarQueryDTO {
     private LocalDate endDate;
     private String status;
     private String visitType;
+    private String relation;
 }

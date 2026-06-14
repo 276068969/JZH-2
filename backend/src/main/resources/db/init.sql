@@ -187,6 +187,22 @@ CREATE TABLE visitors (
     actual_start_time DATETIME COMMENT '实际开始时间',
     actual_end_time DATETIME COMMENT '实际结束时间',
     remark TEXT,
+    lawyer_license_no VARCHAR(50) COMMENT '律师执业证号',
+    law_firm_name VARCHAR(100) COMMENT '律师事务所名称',
+    power_of_attorney_no VARCHAR(100) COMMENT '委托书/法律援助公函编号',
+    case_type VARCHAR(50) COMMENT '案件类型: CRIMINAL(刑事), CIVIL(民事), ADMINISTRATIVE(行政), OTHER(其他)',
+    needs_translator TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否需要翻译',
+    recording_required TINYINT(1) NOT NULL DEFAULT 0 COMMENT '会见是否需要录音录像',
+    lawyer_license_valid_date DATE COMMENT '律师执业证有效期',
+    is_legal_aid TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否法律援助案件',
+    assistant_lawyer_name VARCHAR(50) COMMENT '协办律师姓名',
+    assistant_lawyer_license_no VARCHAR(50) COMMENT '协办律师执业证号',
+    meeting_security_level VARCHAR(20) COMMENT '会见安全等级: STANDARD(标准), ELEVATED(加强), STRICT(严格)',
+    is_urgent_lawyer_meeting TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否紧急律师会见',
+    lawyer_email VARCHAR(100) COMMENT '律师联系邮箱',
+    meeting_stage VARCHAR(50) COMMENT '会见阶段: INVESTIGATION(侦查), PROSECUTION(审查起诉), TRIAL(审判), EXECUTION(执行)',
+    room_type_required VARCHAR(50) COMMENT '会见室类型: NORMAL(普通), ISOLATION(隔离), REMOTE(远程)',
+    has_assistant TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否携带助理会见',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT(1) NOT NULL DEFAULT 0,
@@ -281,17 +297,17 @@ INSERT INTO incidents (incident_title, incident_type, severity, area_id, report_
 ('服刑人员突发腹痛', 'MEDICAL', 'MEDIUM', 2, 2, 3, '2024-05-25 15:00:00', '服刑人员孙某突发腹痛，送医务室处理后好转', 'RESOLVED'),
 ('发现可疑物品', 'OTHER', 'MEDIUM', 4, 4, 5, '2024-06-01 09:00:00', '巡查中发现不明金属物品，正在调查来源', 'PROCESSING');
 
-INSERT INTO visitors (visitor_name, id_card, phone, relation, prisoner_id, visit_date, visit_time_slot, status, visitor_count, purpose, approve_guard_id, approve_remark, approve_time, visit_type, actual_start_time, actual_end_time, remark) VALUES
-('赵某母亲', '440101196501010000', '13800000011', 'PARENT', 1, '2024-06-05', 'AM', 'COMPLETED', 1, '探视', 1, '身份核实无误，同意会见', '2024-06-04 10:30:00', 'FAMILY', '2024-06-05 09:00:00', '2024-06-05 09:30:00', '首次探视，情绪稳定'),
-('钱某妻子', '440102199001010000', '13800000012', 'SPOUSE', 2, '2024-06-06', 'PM', 'APPROVED', 2, '探视并送物品', 2, '结婚证已核验，同意会见', '2024-06-05 14:20:00', 'FAMILY', NULL, NULL, '携带换洗衣物需检查'),
-('孙某律师', '440103198006010000', '13800000013', 'LAWYER', 3, '2024-06-07', 'AM', 'APPROVED', 1, '法律咨询', 2, '律师执业证有效，同意会见', '2024-06-06 09:15:00', 'LAWYER', NULL, NULL, '需携带相关法律文书'),
-('李某父亲', '440104196003030000', '13800000014', 'PARENT', 4, '2024-06-08', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'FAMILY', NULL, NULL, '待审核'),
-('周某律师', '440105197508080000', '13800000015', 'LAWYER', 5, '2024-06-08', 'PM', 'PENDING', 2, '案件辩护', NULL, NULL, NULL, 'LAWYER', NULL, NULL, '两名律师共同会见'),
-('吴某哥哥', '440106198505050000', '13800000016', 'SIBLING', 1, '2024-06-09', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'FAMILY', NULL, NULL, '待审核'),
-('郑某女儿', '440107201002020000', '13800000017', 'CHILD', 2, '2024-06-09', 'PM', 'REJECTED', 1, '探视', 1, '未成年需监护人陪同，暂不同意会见', '2024-06-08 16:00:00', 'FAMILY', NULL, NULL, '需提供监护人同意书'),
-('王某朋友', '440108199010100000', '13800000018', 'FRIEND', 3, '2024-06-10', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'OTHER', NULL, NULL, '待审核'),
-('冯某律师', '440109198212120000', '13800000019', 'LAWYER', 4, '2024-06-10', 'PM', 'PENDING', 1, '上诉准备', NULL, NULL, NULL, 'LAWYER', NULL, NULL, '待审核'),
-('陈某母亲', '440110196807070000', '13800000020', 'PARENT', 5, '2024-06-11', 'AM', 'COMPLETED', 2, '探视', 3, '身份核实无误，同意会见', '2024-06-10 11:00:00', 'FAMILY', '2024-06-11 09:30:00', '2024-06-11 10:00:00', '会见过程顺利');
+INSERT INTO visitors (visitor_name, id_card, phone, relation, prisoner_id, visit_date, visit_time_slot, status, visitor_count, purpose, approve_guard_id, approve_remark, approve_time, visit_type, actual_start_time, actual_end_time, remark, lawyer_license_no, law_firm_name, power_of_attorney_no, case_type, needs_translator, recording_required, lawyer_license_valid_date, is_legal_aid, assistant_lawyer_name, assistant_lawyer_license_no, meeting_security_level, is_urgent_lawyer_meeting, lawyer_email, meeting_stage, room_type_required, has_assistant) VALUES
+('赵某母亲', '440101196501010000', '13800000011', 'PARENT', 1, '2024-06-05', 'AM', 'COMPLETED', 1, '探视', 1, '身份核实无误，同意会见', '2024-06-04 10:30:00', 'FAMILY', '2024-06-05 09:00:00', '2024-06-05 09:30:00', '首次探视，情绪稳定', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('钱某妻子', '440102199001010000', '13800000012', 'SPOUSE', 2, '2024-06-06', 'PM', 'APPROVED', 2, '探视并送物品', 2, '结婚证已核验，同意会见', '2024-06-05 14:20:00', 'FAMILY', NULL, NULL, '携带换洗衣物需检查', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('孙某律师', '440103198006010000', '13800000013', 'LAWYER', 3, '2024-06-07', 'AM', 'APPROVED', 1, '法律咨询', 2, '律师执业证有效，同意会见', '2024-06-06 09:15:00', 'LAWYER', NULL, NULL, '需携带相关法律文书', '粤律证字第12345号', '广东正义律师事务所', '2024粤律字第001号', 'CRIMINAL', 0, 1, '2026-12-31', 0, '李助理', '粤律证字第54321号', 'STANDARD', 0, 'sunlv@justicelaw.com', 'TRIAL', 'NORMAL', 1),
+('李某父亲', '440104196003030000', '13800000014', 'PARENT', 4, '2024-06-08', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'FAMILY', NULL, NULL, '待审核', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('周某律师', '440105197508080000', '13800000015', 'LAWYER', 5, '2024-06-08', 'PM', 'PENDING', 2, '案件辩护', NULL, NULL, NULL, 'LAWYER', NULL, NULL, '两名律师共同会见', '粤律证字第67890号', '广东明德律师事务所', '2024粤律字第002号', 'CRIMINAL', 0, 1, '2027-06-30', 1, '王律师', '粤律证字第09876号', 'ELEVATED', 1, 'zhoulv@mingdelaw.com', 'TRIAL', 'ISOLATION', 0),
+('吴某哥哥', '440106198505050000', '13800000016', 'SIBLING', 1, '2024-06-09', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'FAMILY', NULL, NULL, '待审核', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('郑某女儿', '440107201002020000', '13800000017', 'CHILD', 2, '2024-06-09', 'PM', 'REJECTED', 1, '探视', 1, '未成年需监护人陪同，暂不同意会见', '2024-06-08 16:00:00', 'FAMILY', NULL, NULL, '需提供监护人同意书', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('王某朋友', '440108199010100000', '13800000018', 'FRIEND', 3, '2024-06-10', 'AM', 'PENDING', 1, '探视', NULL, NULL, NULL, 'OTHER', NULL, NULL, '待审核', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0),
+('冯某律师', '440109198212120000', '13800000019', 'LAWYER', 4, '2024-06-10', 'PM', 'PENDING', 1, '上诉准备', NULL, NULL, NULL, 'LAWYER', NULL, NULL, '待审核', '粤律证字第23456号', '广东诚信律师事务所', '2024粤律字第003号', 'CRIMINAL', 0, 1, '2026-09-30', 0, NULL, NULL, 'STANDARD', 0, 'fenglv@chengxinlaw.com', 'TRIAL', 'NORMAL', 0),
+('陈某母亲', '440110196807070000', '13800000020', 'PARENT', 5, '2024-06-11', 'AM', 'COMPLETED', 2, '探视', 3, '身份核实无误，同意会见', '2024-06-10 11:00:00', 'FAMILY', '2024-06-11 09:30:00', '2024-06-11 10:00:00', '会见过程顺利', NULL, NULL, NULL, NULL, 0, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0);
 
 INSERT INTO medical_records (prisoner_id, record_date, diagnosis, treatment, hospital, doctor_name, medical_type, result, medicine, follow_up_date, follow_up_status, actual_follow_up_date, follow_up_result, follow_up_remark) VALUES
 (1, '2024-05-10', '上呼吸道感染', '给予抗感染治疗，嘱休息多饮水', '监狱医务室', '张医生', 'OUTPATIENT', 'RECOVERED', '阿莫西林0.5g tid', NULL, NULL, NULL, NULL, NULL),

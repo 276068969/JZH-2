@@ -36,5 +36,23 @@ public class VisitorDTO {
     private String approveRemark;
     private String visitType;
     private String remark;
+
+    private String lawyerLicenseNo;
+    private String lawFirmName;
+    private String powerOfAttorneyNo;
+    private String caseType;
+    private Boolean needsTranslator;
+    private Boolean recordingRequired;
+
+    private java.time.LocalDate lawyerLicenseValidDate;
+    private Boolean isLegalAid;
+    private String assistantLawyerName;
+    private String assistantLawyerLicenseNo;
+    private String meetingSecurityLevel;
+    private Boolean isUrgentLawyerMeeting;
+    private String lawyerEmail;
+    private String meetingStage;
+    private String roomTypeRequired;
+    private Boolean hasAssistant;
 }
 

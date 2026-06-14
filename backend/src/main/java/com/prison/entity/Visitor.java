@@ -40,6 +40,45 @@ public class Visitor {
     @TableField(exist = false)
     private String remark;
 
+    @TableField(exist = false)
+    private Boolean isLawyerVisit;
+
+    @TableField(exist = false)
+    private String statusText;
+
+    @TableField(exist = false)
+    private String caseTypeText;
+
+    @TableField(exist = false)
+    private String meetingStageText;
+
+    @TableField(exist = false)
+    private String meetingSecurityLevelText;
+
+    @TableField(exist = false)
+    private String roomTypeText;
+
+    @TableField(exist = false)
+    private Boolean lawyerLicenseExpired;
+
+    private String lawyerLicenseNo;
+    private String lawFirmName;
+    private String powerOfAttorneyNo;
+    private String caseType;
+    private Boolean needsTranslator;
+    private Boolean recordingRequired;
+
+    private LocalDate lawyerLicenseValidDate;
+    private Boolean isLegalAid;
+    private String assistantLawyerName;
+    private String assistantLawyerLicenseNo;
+    private String meetingSecurityLevel;
+    private Boolean isUrgentLawyerMeeting;
+    private String lawyerEmail;
+    private String meetingStage;
+    private String roomTypeRequired;
+    private Boolean hasAssistant;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
