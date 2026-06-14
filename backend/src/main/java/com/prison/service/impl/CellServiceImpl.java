@@ -34,6 +34,31 @@ public class CellServiceImpl extends ServiceImpl<CellMapper, Cell> implements Ce
     }
 
     @Override
+    public Page<Cell> pageCellsByAreaId(int page, int size, Long areaId, String keyword) {
+        LambdaQueryWrapper<Cell> wrapper = new LambdaQueryWrapper<>();
+        if (areaId != null) {
+            wrapper.eq(Cell::getAreaId, areaId);
+        }
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(Cell::getCellNumber, keyword)
+                    .or()
+                    .like(Cell::getCellType, keyword));
+        }
+        wrapper.orderByAsc(Cell::getCellNumber);
+        return page(new Page<>(page, size), wrapper);
+    }
+
+    @Override
+    public List<Cell> listByAreaId(Long areaId) {
+        LambdaQueryWrapper<Cell> wrapper = new LambdaQueryWrapper<>();
+        if (areaId != null) {
+            wrapper.eq(Cell::getAreaId, areaId);
+        }
+        wrapper.orderByAsc(Cell::getCellNumber);
+        return list(wrapper);
+    }
+
+    @Override
     @Transactional
     public void createCell(Cell cell) {
         cell.setCurrentOccupancy(0);

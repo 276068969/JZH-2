@@ -4,6 +4,7 @@ import com.prison.Result;
 import com.prison.dto.PrisonAreaDTO;
 import com.prison.entity.PrisonArea;
 import com.prison.service.PrisonAreaService;
+import com.prison.vo.PrisonAreaStatsVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -31,6 +32,18 @@ public class PrisonAreaController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'DOCTOR', 'VIEWER')")
     public Result<List<PrisonArea>> all() {
         return Result.success(prisonAreaService.list());
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<List<PrisonAreaStatsVO>> stats() {
+        return Result.success(prisonAreaService.listAreaStats());
+    }
+
+    @GetMapping("/{id}/stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<PrisonAreaStatsVO> statsById(@PathVariable Long id) {
+        return Result.success(prisonAreaService.getAreaStatsById(id));
     }
 
     @GetMapping("/{id}")

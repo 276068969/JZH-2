@@ -7,6 +7,10 @@ import com.prison.entity.Cell;
 public interface CellService extends IService<Cell> {
     Page<Cell> pageCells(int page, int size, String keyword);
 
+    Page<Cell> pageCellsByAreaId(int page, int size, Long areaId, String keyword);
+
+    List<Cell> listByAreaId(Long areaId);
+
     void createCell(Cell cell);
 
     void updateCell(Long id, Cell cell);

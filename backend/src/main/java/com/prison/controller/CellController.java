@@ -23,13 +23,20 @@ public class CellController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
     public Result<?> list(@RequestParam(defaultValue = "1") int page,
                           @RequestParam(defaultValue = "10") int size,
-                          @RequestParam(required = false) String keyword) {
+                          @RequestParam(required = false) String keyword,
+                          @RequestParam(required = false) Long areaId) {
+        if (areaId != null) {
+            return Result.success(cellService.pageCellsByAreaId(page, size, areaId, keyword));
+        }
         return Result.success(cellService.pageCells(page, size, keyword));
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
-    public Result<List<Cell>> all() {
+    public Result<List<Cell>> all(@RequestParam(required = false) Long areaId) {
+        if (areaId != null) {
+            return Result.success(cellService.listByAreaId(areaId));
+        }
         return Result.success(cellService.list());
     }
 

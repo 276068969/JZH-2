@@ -7,6 +7,10 @@ import com.prison.entity.PrisonArea;
 public interface PrisonAreaService extends IService<PrisonArea> {
     Page<PrisonArea> pagePrisonAreas(int page, int size, String keyword);
 
+    List<com.prison.vo.PrisonAreaStatsVO> listAreaStats();
+
+    com.prison.vo.PrisonAreaStatsVO getAreaStatsById(Long id);
+
     void createPrisonArea(PrisonArea prisonArea);
 
     void updatePrisonArea(Long id, PrisonArea prisonArea);
