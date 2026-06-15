@@ -1,7 +1,8 @@
 services:
   mysql:
     image: ${DOCKER_REGISTRY}/mysql:8.0
-    restart: unless-stopped
+    restart: on-failure:3
+    init: true
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -10,9 +11,9 @@ services:
     ports:
       - "127.0.0.1:${MYSQL_PORT}:3306"
     volumes:
-      - ./docker/mysql/data:/var/lib/mysql
-      - ./docker/mysql/logs:/var/log/mysql
-      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+      - mysql-logs:/var/log/mysql
+      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -24,17 +25,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   redis:
     image: ${DOCKER_REGISTRY}/redis:7-alpine
-    restart: unless-stopped
+    restart: on-failure:3
+    init: true
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
-      - ./docker/redis/data:/data
+      - redis-data:/data
     networks:
       - prison-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   backend:
     build:
@@ -43,12 +51,13 @@ services:
       args:
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
         MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL}
-    restart: unless-stopped
+    restart: on-failure:3
+    init: true
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     environment:
       SERVER_PORT: 8080
       DB_HOST: mysql
@@ -62,6 +71,12 @@ services:
       - "127.0.0.1:${BACKEND_PORT}:8080"
     networks:
       - prison-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/actuator/health 2>/dev/null || nc -z 127.0.0.1 8080 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   frontend:
     build:
@@ -70,14 +85,20 @@ services:
       args:
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
         NPM_REGISTRY: ${NPM_REGISTRY}
-    restart: unless-stopped
+    restart: on-failure:3
+    init: true
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "127.0.0.1:${FRONTEND_PORT}:80"
     networks:
       - prison-network
+
+volumes:
+  mysql-data:
+  mysql-logs:
+  redis-data:
 
 networks:
   prison-network:

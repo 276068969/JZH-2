@@ -42,12 +42,6 @@ public class PrisonerController {
         return Result.success(prisonerService.list());
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'DOCTOR', 'VIEWER')")
-    public Result<Prisoner> getById(@PathVariable Long id) {
-        return Result.success(prisonerService.getById(id));
-    }
-
     @GetMapping("/release-warnings")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
     public Result<List<ReleaseWarningVO>> releaseWarnings(
@@ -65,6 +59,12 @@ public class PrisonerController {
             @RequestParam(required = false) String dangerLevel,
             @RequestParam(required = false) Long areaId) {
         return Result.success(prisonerService.getReleaseBoard(days, status, dangerLevel, areaId));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'DOCTOR', 'VIEWER')")
+    public Result<Prisoner> getById(@PathVariable Long id) {
+        return Result.success(prisonerService.getById(id));
     }
 
     @PostMapping
