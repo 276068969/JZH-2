@@ -202,7 +202,7 @@ onMounted(() => {
         <template #default="{ row }">
           <div>{{ row.operatorRealName || row.operatorUsername }}</div>
           <div v-if="row.operatorRealName && row.operatorUsername" style="font-size: 12px; color: #909399">
-            @{{ row.operatorUsername }}
+            {{ '@' + row.operatorUsername }}
           </div>
         </template>
       </el-table-column>
