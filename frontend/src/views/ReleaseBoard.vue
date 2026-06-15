@@ -23,7 +23,7 @@ interface BoardPrisoner {
   warningLevel: string
   areaId: number
   areaName: string
-  cellId: number
+  cellId: number | null
   dangerLevel: string
   status: string
   healthStatus: string
