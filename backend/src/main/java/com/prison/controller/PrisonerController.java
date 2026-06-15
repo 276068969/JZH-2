@@ -3,6 +3,7 @@ package com.prison.controller;
 import com.prison.Result;
 import com.prison.dto.PrisonerDTO;
 import com.prison.dto.PrisonerQueryDTO;
+import com.prison.dto.ReleaseBoardVO;
 import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 import com.prison.service.PrisonerService;
@@ -54,6 +55,16 @@ public class PrisonerController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String dangerLevel) {
         return Result.success(prisonerService.getReleaseWarnings(days, status, dangerLevel));
+    }
+
+    @GetMapping("/release-board")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<ReleaseBoardVO.BoardData> releaseBoard(
+            @RequestParam(required = false) Integer days,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dangerLevel,
+            @RequestParam(required = false) Long areaId) {
+        return Result.success(prisonerService.getReleaseBoard(days, status, dangerLevel, areaId));
     }
 
     @PostMapping

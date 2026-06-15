@@ -3,6 +3,7 @@ package com.prison.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.prison.dto.PrisonerQueryDTO;
+import com.prison.dto.ReleaseBoardVO;
 import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
 
@@ -14,6 +15,8 @@ public interface PrisonerService extends IService<Prisoner> {
     Page<Prisoner> advancedSearch(PrisonerQueryDTO queryDTO);
 
     List<ReleaseWarningVO> getReleaseWarnings(Integer days, String status, String dangerLevel);
+
+    ReleaseBoardVO.BoardData getReleaseBoard(Integer days, String status, String dangerLevel, Long areaId);
 
     void createPrisoner(Prisoner prisoner);
 

@@ -26,4 +26,7 @@ public interface PrisonerMapper extends BaseMapper<Prisoner> {
 
     @Select("SELECT DATE_FORMAT(entry_date, '%Y-%m') AS ym, COUNT(*) AS cnt FROM prisoners WHERE entry_date <= CONCAT(#{year}, '-', LPAD(#{month}, 2, '0'), '-31') AND status != 'RELEASED' AND deleted = 0 GROUP BY DATE_FORMAT(entry_date, '%Y-%m') ORDER BY ym")
     List<Map<String, Object>> countPrisonersByMonth(@Param("year") int year, @Param("month") int month);
+
+    @Select("SELECT pa.area_name FROM prison_areas pa WHERE pa.id = #{areaId} AND pa.deleted = 0")
+    String getAreaNameById(@Param("areaId") Long areaId);
 }

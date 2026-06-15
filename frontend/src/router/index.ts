@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '临释人员预警', icon: 'Warning' }
       },
       {
+        path: 'release-board',
+        name: 'ReleaseBoard',
+        component: () => import('@/views/ReleaseBoard.vue'),
+        meta: { title: '临释名单看板', icon: 'Monitor' }
+      },
+      {
         path: 'guards',
         name: 'Guards',
         component: () => import('@/views/GuardList.vue'),
