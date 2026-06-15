@@ -16,11 +16,48 @@ export interface LoginResult {
   warning?: string
 }
 
+function safeParseJSON<T>(value: string | null, defaultValue: T): T {
+  if (value === null || value === undefined || value === ''
+      || value === 'null' || value === 'undefined') {
+    return defaultValue
+  }
+  try {
+    const parsed = JSON.parse(value)
+    if (parsed === null || parsed === undefined) {
+      return defaultValue
+    }
+    return parsed as T
+  } catch {
+    console.warn('localStorage 缓存数据损坏，已重置:', value)
+    return defaultValue
+  }
+}
+
+function isValidUserInfo(data: any): data is UserInfo {
+  return data
+    && typeof data.id === 'number'
+    && typeof data.username === 'string'
+    && typeof data.role === 'string'
+    && Array.isArray(data.roles)
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(localStorage.getItem('token') || '')
-  const userInfo = ref<UserInfo | null>(
-    JSON.parse(localStorage.getItem('userInfo') || 'null')
+
+  const rawUserInfo = safeParseJSON<UserInfo | null>(
+    localStorage.getItem('userInfo'),
+    null
   )
+  const userInfo = ref<UserInfo | null>(
+    isValidUserInfo(rawUserInfo) ? rawUserInfo : null
+  )
+
+  if (!userInfo.value && token.value) {
+    console.warn('检测到 token 存在但 userInfo 损坏，已自动清理脏缓存')
+    token.value = ''
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
+  }
 
   function setToken(val: string) {
     token.value = val
@@ -43,18 +80,27 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(username: string, password: string): Promise<LoginResult> {
     const res = await post('/auth/login', { username, password })
     const data = res.data.data
+
+    if (!data || !data.token || !data.username) {
+      throw new Error('登录响应数据异常')
+    }
+
+    const roles = Array.isArray(data.roles) && data.roles.length > 0
+      ? data.roles
+      : (data.role ? [data.role] : ['VIEWER'])
+
     setToken(data.token)
     const info: UserInfo = {
-      id: data.id,
+      id: data.id ?? 0,
       username: data.username,
-      realName: data.realName,
-      role: data.role,
-      roles: data.roles
+      realName: data.realName || data.username,
+      role: data.role || 'VIEWER',
+      roles: roles
     }
     setUserInfo(info)
     return {
       userInfo: info,
-      warning: data.warning
+      warning: data.warning || undefined
     }
   }
 
