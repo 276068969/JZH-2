@@ -19,4 +19,5 @@ public class LoginResponse {
     private String realName;
     private String role;
     private List<String> roles;
+    private String warning;
 }

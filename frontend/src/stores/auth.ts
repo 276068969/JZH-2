@@ -11,6 +11,11 @@ export interface UserInfo {
   roles: string[]
 }
 
+export interface LoginResult {
+  userInfo: UserInfo
+  warning?: string
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(localStorage.getItem('token') || '')
   const userInfo = ref<UserInfo | null>(
@@ -35,18 +40,22 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.some((r) => userInfo.value?.roles?.includes(r)) ?? false
   }
 
-  async function login(username: string, password: string) {
+  async function login(username: string, password: string): Promise<LoginResult> {
     const res = await post('/auth/login', { username, password })
     const data = res.data.data
     setToken(data.token)
-    setUserInfo({
+    const info: UserInfo = {
       id: data.id,
       username: data.username,
       realName: data.realName,
       role: data.role,
       roles: data.roles
-    })
-    return res
+    }
+    setUserInfo(info)
+    return {
+      userInfo: info,
+      warning: data.warning
+    }
   }
 
   function logout() {

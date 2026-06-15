@@ -27,8 +27,12 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    await authStore.login(loginForm.username, loginForm.password)
-    ElMessage.success('登录成功')
+    const result = await authStore.login(loginForm.username, loginForm.password)
+    if (result.warning) {
+      ElMessage.warning(result.warning)
+    } else {
+      ElMessage.success('登录成功')
+    }
     router.push('/dashboard')
   } catch (err: any) {
     const msg = err?.response?.data?.message || err?.message || '登录失败'

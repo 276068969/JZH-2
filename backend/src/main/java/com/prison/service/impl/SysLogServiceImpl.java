@@ -72,8 +72,8 @@ public class SysLogServiceImpl extends ServiceImpl<SysLogMapper, SysLog> impleme
     }
 
     @Override
-    public void log(SysLogModule module, SysLogAction action, String detail,
-                    String targetType, Long targetId, String targetName, boolean success, String failReason) {
+    public boolean log(SysLogModule module, SysLogAction action, String detail,
+                       String targetType, Long targetId, String targetName, boolean success, String failReason) {
         try {
             SysLog sysLog = new SysLog();
             sysLog.setModule(module.name());
@@ -88,22 +88,29 @@ public class SysLogServiceImpl extends ServiceImpl<SysLogMapper, SysLog> impleme
             fillOperatorInfo(sysLog);
             fillRequestInfo(sysLog);
 
-            save(sysLog);
+            boolean saved = save(sysLog);
+            if (!saved) {
+                log.error("记录系统日志失败：数据库写入返回false, module={}, action={}, detail={}",
+                        module, action, detail);
+            }
+            return saved;
         } catch (Exception e) {
-            log.error("记录系统日志失败", e);
+            log.error("记录系统日志异常：module={}, action={}, detail={}",
+                    module, action, detail, e);
+            return false;
         }
     }
 
     @Override
-    public void logSuccess(SysLogModule module, SysLogAction action, String detail,
-                           String targetType, Long targetId, String targetName) {
-        log(module, action, detail, targetType, targetId, targetName, true, null);
+    public boolean logSuccess(SysLogModule module, SysLogAction action, String detail,
+                              String targetType, Long targetId, String targetName) {
+        return log(module, action, detail, targetType, targetId, targetName, true, null);
     }
 
     @Override
-    public void logFailure(SysLogModule module, SysLogAction action, String detail,
-                           String targetType, Long targetId, String targetName, String failReason) {
-        log(module, action, detail, targetType, targetId, targetName, false, failReason);
+    public boolean logFailure(SysLogModule module, SysLogAction action, String detail,
+                              String targetType, Long targetId, String targetName, String failReason) {
+        return log(module, action, detail, targetType, targetId, targetName, false, failReason);
     }
 
     private void fillOperatorInfo(SysLog sysLog) {

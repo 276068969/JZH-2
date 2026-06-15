@@ -11,12 +11,12 @@ public interface SysLogService extends IService<SysLog> {
 
     Page<SysLog> pageLogs(SysLogQueryDTO queryDTO);
 
-    void log(SysLogModule module, SysLogAction action, String detail,
-             String targetType, Long targetId, String targetName, boolean success, String failReason);
+    boolean log(SysLogModule module, SysLogAction action, String detail,
+                String targetType, Long targetId, String targetName, boolean success, String failReason);
 
-    void logSuccess(SysLogModule module, SysLogAction action, String detail,
-                    String targetType, Long targetId, String targetName);
+    boolean logSuccess(SysLogModule module, SysLogAction action, String detail,
+                       String targetType, Long targetId, String targetName);
 
-    void logFailure(SysLogModule module, SysLogAction action, String detail,
-                    String targetType, Long targetId, String targetName, String failReason);
+    boolean logFailure(SysLogModule module, SysLogAction action, String detail,
+                       String targetType, Long targetId, String targetName, String failReason);
 }

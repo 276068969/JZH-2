@@ -17,6 +17,7 @@ import com.prison.security.JwtTokenProvider;
 import com.prison.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -25,6 +26,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Collections;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -58,20 +60,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole());
 
-        saveLoginLog(user.getUsername(), user.getRealName(), true, null);
+        boolean logSaved = saveLoginLog(user.getUsername(), user.getRealName(), true, null);
 
-        return LoginResponse.builder()
+        LoginResponse.LoginResponseBuilder responseBuilder = LoginResponse.builder()
                 .id(user.getId())
                 .token(token)
                 .tokenType("Bearer")
                 .username(user.getUsername())
                 .realName(user.getRealName())
                 .role(user.getRole())
-                .roles(Collections.singletonList(user.getRole()))
-                .build();
+                .roles(Collections.singletonList(user.getRole()));
+
+        if (!logSaved) {
+            responseBuilder.warning("登录成功，但系统日志记录失败，请联系管理员检查日志服务");
+        }
+
+        return responseBuilder.build();
     }
 
-    private void saveLoginLog(String username, String realName, boolean success, String failReason) {
+    private boolean saveLoginLog(String username, String realName, boolean success, String failReason) {
         try {
             SysLog sysLog = new SysLog();
             sysLog.setModule(SysLogModule.AUTH.name());
@@ -92,11 +99,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     sysLog.setRequestMethod(request.getMethod());
                     sysLog.setRequestUrl(request.getRequestURI());
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.warn("获取请求信息失败，日志中将缺少IP等信息", e);
             }
 
-            sysLogMapper.insert(sysLog);
-        } catch (Exception ignored) {
+            int rows = sysLogMapper.insert(sysLog);
+            if (rows <= 0) {
+                log.error("登录日志写入失败，数据库影响行数为0，username={}", username);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("登录日志写入异常，username={}", username, e);
+            return false;
         }
     }
 
