@@ -7,9 +7,12 @@ import com.prison.config.BusinessException;
 import com.prison.dto.PrisonerQueryDTO;
 import com.prison.dto.ReleaseWarningVO;
 import com.prison.entity.Prisoner;
+import com.prison.enums.SysLogAction;
+import com.prison.enums.SysLogModule;
 import com.prison.mapper.PrisonerMapper;
 import com.prison.service.CellService;
 import com.prison.service.PrisonerService;
+import com.prison.service.SysLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ import java.util.List;
 public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> implements PrisonerService {
 
     private final CellService cellService;
+    private final SysLogService sysLogService;
 
     @Override
     public Page<Prisoner> pagePrisoners(int page, int size, String keyword) {
@@ -119,6 +123,15 @@ public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> i
         } else {
             save(prisoner);
         }
+
+        sysLogService.logSuccess(
+                SysLogModule.PRISONER,
+                SysLogAction.CREATE,
+                "新增服刑人员：" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "）",
+                "PRISONER",
+                prisoner.getId(),
+                prisoner.getName()
+        );
     }
 
     @Override
@@ -150,6 +163,15 @@ public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> i
             prisoner.setId(id);
             updateById(prisoner);
         }
+
+        sysLogService.logSuccess(
+                SysLogModule.PRISONER,
+                SysLogAction.UPDATE,
+                "修改服刑人员信息：" + existing.getName() + "（编号：" + existing.getPrisonerNumber() + "）",
+                "PRISONER",
+                id,
+                existing.getName()
+        );
     }
 
     @Override
@@ -161,11 +183,22 @@ public class PrisonerServiceImpl extends ServiceImpl<PrisonerMapper, Prisoner> i
         }
 
         Long cellId = existing.getCellId();
+        String prisonerName = existing.getName();
+        String prisonerNumber = existing.getPrisonerNumber();
         removeById(id);
 
         if (cellId != null) {
             cellService.decrementOccupancy(cellId);
         }
+
+        sysLogService.logSuccess(
+                SysLogModule.PRISONER,
+                SysLogAction.DELETE,
+                "删除服刑人员：" + prisonerName + "（编号：" + prisonerNumber + "）",
+                "PRISONER",
+                id,
+                prisonerName
+        );
     }
 
     private boolean cellIdsEqual(Long a, Long b) {

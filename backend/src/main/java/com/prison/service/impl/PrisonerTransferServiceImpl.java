@@ -10,11 +10,14 @@ import com.prison.entity.Cell;
 import com.prison.entity.PrisonArea;
 import com.prison.entity.Prisoner;
 import com.prison.entity.PrisonerTransfer;
+import com.prison.enums.SysLogAction;
+import com.prison.enums.SysLogModule;
 import com.prison.mapper.PrisonerTransferMapper;
 import com.prison.service.CellService;
 import com.prison.service.PrisonAreaService;
 import com.prison.service.PrisonerService;
 import com.prison.service.PrisonerTransferService;
+import com.prison.service.SysLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -33,6 +36,7 @@ public class PrisonerTransferServiceImpl extends ServiceImpl<PrisonerTransferMap
     private final PrisonerService prisonerService;
     private final CellService cellService;
     private final PrisonAreaService prisonAreaService;
+    private final SysLogService sysLogService;
 
     @Override
     public Page<PrisonerTransfer> pageTransfers(PrisonerTransferQueryDTO queryDTO) {
@@ -167,6 +171,23 @@ public class PrisonerTransferServiceImpl extends ServiceImpl<PrisonerTransferMap
                 toArea != null ? toArea.getAreaName() : "无",
                 toCell != null ? toCell.getCellNumber() : "无",
                 transferType);
+
+        String transferTypeText = "BOTH".equals(transferType) ? "调监调舍"
+                : "AREA_TRANSFER".equals(transferType) ? "调监" : "调舍";
+        sysLogService.logSuccess(
+                SysLogModule.PRISONER_TRANSFER,
+                SysLogAction.TRANSFER,
+                "服刑人员调动：" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "），"
+                        + "类型：" + transferTypeText + "，"
+                        + "原监区/监舍：" + (fromArea != null ? fromArea.getAreaName() : "无") + "/"
+                        + (fromCell != null ? fromCell.getCellNumber() : "无") + " → "
+                        + "新监区/监舍：" + (toArea != null ? toArea.getAreaName() : "无") + "/"
+                        + (toCell != null ? toCell.getCellNumber() : "无")
+                        + (dto.getTransferReason() != null ? "，原因：" + dto.getTransferReason() : ""),
+                "PRISONER",
+                prisoner.getId(),
+                prisoner.getName()
+        );
     }
 
     @Override
@@ -245,6 +266,16 @@ public class PrisonerTransferServiceImpl extends ServiceImpl<PrisonerTransferMap
 
         removeById(id);
         log.info("调动记录删除成功: id={}", id);
+
+        sysLogService.logSuccess(
+                SysLogModule.PRISONER_TRANSFER,
+                SysLogAction.DELETE,
+                "删除服刑人员调动记录：" + transfer.getPrisonerName()
+                        + "（编号：" + transfer.getPrisonerNumber() + "）",
+                "PRISONER_TRANSFER",
+                id,
+                transfer.getPrisonerName()
+        );
     }
 
     private boolean isLatestTransfer(Long prisonerId, Long transferId) {

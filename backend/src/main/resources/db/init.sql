@@ -12,7 +12,31 @@ DROP TABLE IF EXISTS prisoners;
 DROP TABLE IF EXISTS guards;
 DROP TABLE IF EXISTS cells;
 DROP TABLE IF EXISTS prison_areas;
+DROP TABLE IF EXISTS sys_logs;
 DROP TABLE IF EXISTS users;
+
+CREATE TABLE sys_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    operator_username VARCHAR(50) COMMENT '操作人用户名',
+    operator_real_name VARCHAR(50) COMMENT '操作人姓名',
+    module VARCHAR(50) NOT NULL COMMENT '业务模块',
+    action VARCHAR(50) NOT NULL COMMENT '操作类型',
+    detail TEXT COMMENT '操作详情',
+    target_type VARCHAR(50) COMMENT '操作对象类型',
+    target_id BIGINT COMMENT '操作对象ID',
+    target_name VARCHAR(200) COMMENT '操作对象名称',
+    ip_address VARCHAR(50) COMMENT 'IP地址',
+    status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS' COMMENT '操作状态: SUCCESS, FAILURE',
+    fail_reason TEXT COMMENT '失败原因',
+    request_method VARCHAR(10) COMMENT '请求方法',
+    request_url VARCHAR(255) COMMENT '请求URL',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    INDEX idx_operator (operator_username),
+    INDEX idx_module (module),
+    INDEX idx_create_time (create_time),
+    INDEX idx_target (target_type, target_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -8,14 +8,21 @@ import com.prison.dto.IncidentDTO;
 import com.prison.entity.Incident;
 import com.prison.enums.IncidentStatus;
 import com.prison.enums.SeverityLevel;
+import com.prison.enums.SysLogAction;
+import com.prison.enums.SysLogModule;
 import com.prison.mapper.IncidentMapper;
 import com.prison.service.IncidentService;
+import com.prison.service.SysLogService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
+@RequiredArgsConstructor
 public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> implements IncidentService {
+
+    private final SysLogService sysLogService;
 
     @Override
     public Page<Incident> pageIncidents(int page, int size, String keyword) {
@@ -83,6 +90,17 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
 
         incident.setStatus(IncidentStatus.PROCESSING.name());
         updateById(incident);
+
+        sysLogService.logSuccess(
+                SysLogModule.INCIDENT,
+                SysLogAction.START_PROCESSING,
+                "开始处置事件：" + incident.getIncidentTitle()
+                        + "（类型：" + incident.getIncidentType() + "，严重程度：" + incident.getSeverity() + "）",
+                "INCIDENT",
+                id,
+                incident.getIncidentTitle()
+        );
+
         return incident;
     }
 
@@ -102,6 +120,17 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
 
         incident.setStatus(IncidentStatus.RESOLVED.name());
         updateById(incident);
+
+        sysLogService.logSuccess(
+                SysLogModule.INCIDENT,
+                SysLogAction.RESOLVE,
+                "处置完成事件：" + incident.getIncidentTitle()
+                        + "，处置结论：" + handlerResult,
+                "INCIDENT",
+                id,
+                incident.getIncidentTitle()
+        );
+
         return incident;
     }
 
@@ -116,6 +145,16 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
 
         incident.setStatus(IncidentStatus.CLOSED.name());
         updateById(incident);
+
+        sysLogService.logSuccess(
+                SysLogModule.INCIDENT,
+                SysLogAction.CLOSE,
+                "关闭事件：" + incident.getIncidentTitle(),
+                "INCIDENT",
+                id,
+                incident.getIncidentTitle()
+        );
+
         return incident;
     }
 
@@ -145,6 +184,15 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
         BeanUtils.copyProperties(dto, incident);
         incident.setId(id);
         updateById(incident);
+
+        sysLogService.logSuccess(
+                SysLogModule.INCIDENT,
+                SysLogAction.UPDATE,
+                "修改事件信息：" + existing.getIncidentTitle(),
+                "INCIDENT",
+                id,
+                existing.getIncidentTitle()
+        );
     }
 
     @Override
@@ -163,5 +211,15 @@ public class IncidentServiceImpl extends ServiceImpl<IncidentMapper, Incident> i
             }
         }
         save(incident);
+
+        sysLogService.logSuccess(
+                SysLogModule.INCIDENT,
+                SysLogAction.CREATE,
+                "上报事件：" + incident.getIncidentTitle()
+                        + "（类型：" + incident.getIncidentType() + "，严重程度：" + incident.getSeverity() + "）",
+                "INCIDENT",
+                incident.getId(),
+                incident.getIncidentTitle()
+        );
     }
 }

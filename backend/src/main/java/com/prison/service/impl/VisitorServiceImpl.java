@@ -9,9 +9,12 @@ import com.prison.dto.VisitorDTO;
 import com.prison.entity.Guard;
 import com.prison.entity.Prisoner;
 import com.prison.entity.Visitor;
+import com.prison.enums.SysLogAction;
+import com.prison.enums.SysLogModule;
 import com.prison.mapper.VisitorMapper;
 import com.prison.service.GuardService;
 import com.prison.service.PrisonerService;
+import com.prison.service.SysLogService;
 import com.prison.service.VisitorService;
 import com.prison.vo.LawyerMeetingDetailVO;
 import com.prison.vo.VisitorCalendarVO;
@@ -34,6 +37,7 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
 
     private final PrisonerService prisonerService;
     private final GuardService guardService;
+    private final SysLogService sysLogService;
 
     private static final Map<String, String> STATUS_TEXT_MAP = new HashMap<>();
     private static final Map<String, String> LAWYER_STATUS_TEXT_MAP = new HashMap<>();
@@ -221,6 +225,18 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
             visitor.setRecordingRequired(true);
         }
         save(visitor);
+
+        String visitTypeText = isLawyerVisit(visitor) ? "律师会见" : "家属会见";
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.CREATE,
+                "新增" + visitTypeText + "申请：" + visitor.getVisitorName()
+                        + "，会见日期：" + visitor.getVisitDate()
+                        + (visitor.getVisitTimeSlot() != null ? "（" + visitor.getVisitTimeSlot() + "）" : ""),
+                "VISITOR",
+                visitor.getId(),
+                visitor.getVisitorName()
+        );
     }
 
     @Override
@@ -236,6 +252,15 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         validateVisitorData(visitor);
         autoFillLawyerDefaults(visitor);
         updateById(visitor);
+
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.UPDATE,
+                "修改访客记录：" + existing.getVisitorName(),
+                "VISITOR",
+                id,
+                existing.getVisitorName()
+        );
     }
 
     private void autoFillLawyerDefaults(Visitor visitor) {
@@ -410,6 +435,18 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         visitor.setApproveGuardId(dto.getApproveGuardId());
         visitor.setApproveTime(LocalDateTime.now());
         updateById(visitor);
+
+        String visitTypeText = isLawyerVisit(visitor) ? "律师会见" : "家属会见";
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.APPROVE,
+                "审批通过" + visitTypeText + "：" + visitor.getVisitorName()
+                        + "，会见日期：" + visitor.getVisitDate()
+                        + (dto.getApproveRemark() != null ? "，审批意见：" + dto.getApproveRemark() : ""),
+                "VISITOR",
+                id,
+                visitor.getVisitorName()
+        );
     }
 
     private void validateLawyerApproval(Visitor visitor) {
@@ -463,6 +500,17 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         visitor.setApproveGuardId(dto.getApproveGuardId());
         visitor.setApproveTime(LocalDateTime.now());
         updateById(visitor);
+
+        String visitTypeText = isLawyerVisit(visitor) ? "律师会见" : "家属会见";
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.REJECT,
+                "审批驳回" + visitTypeText + "：" + visitor.getVisitorName()
+                        + (dto.getApproveRemark() != null ? "，驳回理由：" + dto.getApproveRemark() : ""),
+                "VISITOR",
+                id,
+                visitor.getVisitorName()
+        );
     }
 
     @Override
@@ -486,6 +534,15 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         visitor.setStatus("IN_PROGRESS");
         visitor.setActualStartTime(LocalDateTime.now());
         updateById(visitor);
+
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.START_VISIT,
+                "开始会见：" + visitor.getVisitorName(),
+                "VISITOR",
+                id,
+                visitor.getVisitorName()
+        );
     }
 
     @Override
@@ -500,6 +557,15 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         visitor.setStatus("COMPLETED");
         visitor.setActualEndTime(LocalDateTime.now());
         updateById(visitor);
+
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.END_VISIT,
+                "结束会见：" + visitor.getVisitorName(),
+                "VISITOR",
+                id,
+                visitor.getVisitorName()
+        );
     }
 
     @Override
@@ -525,6 +591,17 @@ public class VisitorServiceImpl extends ServiceImpl<VisitorMapper, Visitor> impl
         visitor.setApproveGuardId(dto.getApproveGuardId());
         visitor.setApproveTime(LocalDateTime.now());
         updateById(visitor);
+
+        String visitTypeText = isLawyer ? "律师会见" : "家属会见";
+        sysLogService.logSuccess(
+                SysLogModule.VISITOR,
+                SysLogAction.CANCEL,
+                "取消" + visitTypeText + "：" + visitor.getVisitorName()
+                        + (dto.getApproveRemark() != null ? "，取消原因：" + dto.getApproveRemark() : ""),
+                "VISITOR",
+                id,
+                visitor.getVisitorName()
+        );
     }
 
     @Override
