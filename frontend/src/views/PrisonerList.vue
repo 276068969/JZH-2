@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { get, post, put, del } from '@/utils/request'
 
 interface Prisoner {
   id: number
   name: string
   gender: string
-  age: number
   prisonerNumber: string
-  prisonArea: string
-  areaId: number
+  areaId: number | null
+  cellId: number | null
   cellNumber: string
   crimeType: string
-  sentence: string
   sentenceTerm: number
   entryDate: string
   releaseDate: string
@@ -20,10 +19,12 @@ interface Prisoner {
   dangerLevel: string
   idCard: string
   nativePlace: string
+  birthDate: string
   educationLevel: string
   maritalStatus: string
   occupation: string
   healthStatus: string
+  photoUrl: string
   remark: string
 }
 
@@ -33,43 +34,8 @@ interface PrisonArea {
   areaCode: string
 }
 
-const mockData: Prisoner[] = [
-  { id: 1, name: '张三', gender: '男', age: 35, prisonerNumber: 'P2024001', prisonArea: 'A区', areaId: 1, cellNumber: 'A-101', crimeType: '盗窃罪', sentence: '5年', sentenceTerm: 60, entryDate: '2024-01-15', releaseDate: '2029-01-14', status: '在押', dangerLevel: 'LOW', idCard: '110101199001011234', nativePlace: '北京市', educationLevel: '高中', maritalStatus: '已婚', occupation: '无业', healthStatus: '良好', remark: '表现良好' },
-  { id: 2, name: '李四', gender: '男', age: 42, prisonerNumber: 'P2024002', prisonArea: 'A区', areaId: 1, cellNumber: 'A-102', crimeType: '诈骗罪', sentence: '8年', sentenceTerm: 96, entryDate: '2024-02-20', releaseDate: '2032-02-19', status: '在押', dangerLevel: 'MEDIUM', idCard: '310101198205155678', nativePlace: '上海市', educationLevel: '大专', maritalStatus: '离异', occupation: '公司职员', healthStatus: '高血压', remark: '需定期体检' },
-  { id: 3, name: '王五', gender: '男', age: 28, prisonerNumber: 'P2024003', prisonArea: 'B区', areaId: 2, cellNumber: 'B-201', crimeType: '故意伤害', sentence: '3年', sentenceTerm: 36, entryDate: '2024-03-10', releaseDate: '2027-03-09', status: '在押', dangerLevel: 'HIGH', idCard: '440101199608209012', nativePlace: '广州市', educationLevel: '初中', maritalStatus: '未婚', occupation: '个体', healthStatus: '良好', remark: '有暴力倾向，需重点关注' },
-  { id: 4, name: '赵六', gender: '女', age: 31, prisonerNumber: 'P2024004', prisonArea: 'C区', areaId: 3, cellNumber: 'C-301', crimeType: '贪污罪', sentence: '10年', sentenceTerm: 120, entryDate: '2024-01-05', releaseDate: '2034-01-04', status: '在押', dangerLevel: 'LOW', idCard: '510101199303103456', nativePlace: '成都市', educationLevel: '本科', maritalStatus: '已婚', occupation: '公务员', healthStatus: '良好', remark: '表现良好，积极参加改造' },
-  { id: 5, name: '孙七', gender: '男', age: 45, prisonerNumber: 'P2024005', prisonArea: 'B区', areaId: 2, cellNumber: 'B-202', crimeType: '抢劫罪', sentence: '6年', sentenceTerm: 72, entryDate: '2024-04-18', releaseDate: '2030-04-17', status: '在押', dangerLevel: 'HIGH', idCard: '420101197906257890', nativePlace: '武汉市', educationLevel: '小学', maritalStatus: '已婚', occupation: '无业', healthStatus: '糖尿病', remark: '高危，需重点监控' },
-  { id: 6, name: '周八', gender: '男', age: 38, prisonerNumber: 'P2024006', prisonArea: 'A区', areaId: 1, cellNumber: 'A-103', crimeType: '走私罪', sentence: '7年', sentenceTerm: 84, entryDate: '2024-05-22', releaseDate: '2031-05-21', status: '在押', dangerLevel: 'MEDIUM', idCard: '330101198609122345', nativePlace: '杭州市', educationLevel: '高中', maritalStatus: '已婚', occupation: '商人', healthStatus: '良好', remark: '' },
-  { id: 7, name: '吴九', gender: '女', age: 26, prisonerNumber: 'P2024007', prisonArea: 'C区', areaId: 3, cellNumber: 'C-302', crimeType: '贩毒罪', sentence: '15年', sentenceTerm: 180, entryDate: '2024-06-08', releaseDate: '2039-06-07', status: '在押', dangerLevel: 'HIGH', idCard: '530101199802146789', nativePlace: '昆明市', educationLevel: '初中', maritalStatus: '未婚', occupation: '无业', healthStatus: '良好', remark: '涉毒人员，需重点关注' },
-  { id: 8, name: '郑十', gender: '男', age: 33, prisonerNumber: 'P2024008', prisonArea: 'B区', areaId: 2, cellNumber: 'B-203', crimeType: '非法经营', sentence: '4年', sentenceTerm: 48, entryDate: '2024-07-12', releaseDate: '2028-07-11', status: '在押', dangerLevel: 'LOW', idCard: '320101199107304567', nativePlace: '南京市', educationLevel: '大专', maritalStatus: '已婚', occupation: '个体', healthStatus: '良好', remark: '' },
-  { id: 9, name: '陈十一', gender: '男', age: 50, prisonerNumber: 'P2024009', prisonArea: 'A区', areaId: 1, cellNumber: 'A-104', crimeType: '受贿罪', sentence: '12年', sentenceTerm: 144, entryDate: '2023-08-15', releaseDate: '2035-08-14', status: '在押', dangerLevel: 'LOW', idCard: '110102197403088901', nativePlace: '北京市', educationLevel: '研究生', maritalStatus: '已婚', occupation: '公务员', healthStatus: '心脏病', remark: '需长期服药' },
-  { id: 10, name: '林十二', gender: '女', age: 40, prisonerNumber: 'P2024010', prisonArea: 'C区', areaId: 3, cellNumber: 'C-303', crimeType: '故意杀人', sentence: '无期徒刑', sentenceTerm: 999, entryDate: '2022-11-20', releaseDate: '', status: '在押', dangerLevel: 'HIGH', idCard: '440301198405125678', nativePlace: '深圳市', educationLevel: '本科', maritalStatus: '离异', occupation: '公司经理', healthStatus: '良好', remark: '重刑犯，需严格监控' },
-  { id: 11, name: '黄十三', gender: '男', age: 36, prisonerNumber: 'P2024011', prisonArea: 'D区', areaId: 4, cellNumber: 'D-101', crimeType: '寻衅滋事', sentence: '2年', sentenceTerm: 24, entryDate: '2024-09-01', releaseDate: '2026-08-31', status: '禁闭', dangerLevel: 'HIGH', idCard: '610101198810207890', nativePlace: '西安市', educationLevel: '高中', maritalStatus: '未婚', occupation: '无业', healthStatus: '良好', remark: '多次违反监规，关禁闭' },
-  { id: 12, name: '刘十四', gender: '男', age: 55, prisonerNumber: 'P2024012', prisonArea: 'A区', areaId: 1, cellNumber: 'A-105', crimeType: '合同诈骗', sentence: '9年', sentenceTerm: 108, entryDate: '2023-12-10', releaseDate: '2032-12-09', status: '在押', dangerLevel: 'MEDIUM', idCard: '370101196906152345', nativePlace: '济南市', educationLevel: '本科', maritalStatus: '已婚', occupation: '商人', healthStatus: '高血压、糖尿病', remark: '老年犯，需特殊照顾' }
-]
-
-const prisonAreaList: PrisonArea[] = [
-  { id: 1, areaName: 'A区', areaCode: 'AREA-A' },
-  { id: 2, areaName: 'B区', areaCode: 'AREA-B' },
-  { id: 3, areaName: 'C区', areaCode: 'AREA-C' },
-  { id: 4, areaName: 'D区', areaCode: 'AREA-D' }
-]
-
-const dangerLevelOptions = [
-  { label: '低危', value: 'LOW' },
-  { label: '中危', value: 'MEDIUM' },
-  { label: '高危', value: 'HIGH' }
-]
-
-const statusOptions = [
-  { label: '在押', value: '在押' },
-  { label: '禁闭', value: '禁闭' },
-  { label: '就医', value: '就医' },
-  { label: '调监', value: '调监' },
-  { label: '已释放', value: '已释放' }
-]
-
-const tableData = ref<Prisoner[]>(mockData)
+const tableData = ref<Prisoner[]>([])
+const prisonAreaList = ref<PrisonArea[]>([])
 const advancedFilterVisible = ref(false)
 const drawerVisible = ref(false)
 const selectedPrisoner = ref<Prisoner | null>(null)
@@ -91,11 +57,28 @@ const searchForm = reactive({
 })
 
 const form = reactive<Prisoner>({
-  id: 0, name: '', gender: '男', age: 0, prisonerNumber: '',
-  prisonArea: '', areaId: 0, cellNumber: '', crimeType: '', sentence: '',
-  sentenceTerm: 0, entryDate: '', releaseDate: '', status: '在押',
-  dangerLevel: 'LOW', idCard: '', nativePlace: '', educationLevel: '',
-  maritalStatus: '', occupation: '', healthStatus: '', remark: ''
+  id: 0,
+  name: '',
+  gender: '男',
+  prisonerNumber: '',
+  areaId: null,
+  cellId: null,
+  cellNumber: '',
+  crimeType: '',
+  sentenceTerm: 0,
+  entryDate: '',
+  releaseDate: '',
+  status: 'INCARCERATED',
+  dangerLevel: 'LOW',
+  idCard: '',
+  nativePlace: '',
+  birthDate: '',
+  educationLevel: '',
+  maritalStatus: '',
+  occupation: '',
+  healthStatus: '',
+  photoUrl: '',
+  remark: ''
 })
 
 const rules: FormRules = {
@@ -109,77 +92,152 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
-const filteredData = computed(() => {
-  let result = tableData.value
+const dangerLevelOptions = [
+  { label: '低危', value: 'LOW' },
+  { label: '中危', value: 'MEDIUM' },
+  { label: '高危', value: 'HIGH' },
+  { label: '极高危', value: 'EXTREME' }
+]
 
-  if (searchForm.keyword) {
-    const kw = searchForm.keyword.toLowerCase()
-    result = result.filter(item =>
-      item.name.toLowerCase().includes(kw) ||
-      item.prisonerNumber.toLowerCase().includes(kw) ||
-      item.idCard.includes(kw)
-    )
-  }
+const statusOptions = [
+  { label: '在押', value: 'INCARCERATED' },
+  { label: '已释放', value: 'RELEASED' },
+  { label: '调监', value: 'TRANSFERRED' },
+  { label: '保外就医', value: 'MEDICAL_PAROLE' }
+]
 
-  if (searchForm.areaId) {
-    result = result.filter(item => item.areaId === searchForm.areaId)
-  }
+const genderOptions = [
+  { label: '男', value: '男' },
+  { label: '女', value: '女' }
+]
 
-  if (searchForm.dangerLevel) {
-    result = result.filter(item => item.dangerLevel === searchForm.dangerLevel)
-  }
+const educationOptions = [
+  { label: '小学', value: '小学' },
+  { label: '初中', value: '初中' },
+  { label: '高中', value: '高中' },
+  { label: '大专', value: '大专' },
+  { label: '本科', value: '本科' },
+  { label: '研究生', value: '研究生' }
+]
 
-  if (searchForm.status) {
-    result = result.filter(item => item.status === searchForm.status)
-  }
-
-  if (searchForm.gender) {
-    result = result.filter(item => item.gender === searchForm.gender)
-  }
-
-  if (searchForm.crimeType) {
-    result = result.filter(item => item.crimeType.includes(searchForm.crimeType))
-  }
-
-  if (searchForm.minAge) {
-    result = result.filter(item => item.age >= searchForm.minAge!)
-  }
-
-  if (searchForm.maxAge) {
-    result = result.filter(item => item.age <= searchForm.maxAge!)
-  }
-
-  total.value = result.length
-  return result
-})
-
-const pagedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredData.value.slice(start, start + pageSize.value)
-})
+const maritalOptions = [
+  { label: '未婚', value: '未婚' },
+  { label: '已婚', value: '已婚' },
+  { label: '离异', value: '离异' },
+  { label: '丧偶', value: '丧偶' }
+]
 
 function getDangerLevelTag(level: string) {
   const map: Record<string, { text: string; type: string }> = {
     LOW: { text: '低危', type: 'success' },
     MEDIUM: { text: '中危', type: 'warning' },
-    HIGH: { text: '高危', type: 'danger' }
+    HIGH: { text: '高危', type: 'danger' },
+    EXTREME: { text: '极高危', type: 'danger' }
   }
   return map[level] || { text: '未知', type: 'info' }
 }
 
 function getStatusTag(status: string) {
   const map: Record<string, { text: string; type: string }> = {
-    '在押': { text: '在押', type: 'danger' },
-    '禁闭': { text: '禁闭', type: 'warning' },
-    '就医': { text: '就医', type: 'warning' },
-    '调监': { text: '调监', type: 'primary' },
-    '已释放': { text: '已释放', type: 'success' }
+    INCARCERATED: { text: '在押', type: 'danger' },
+    RELEASED: { text: '已释放', type: 'success' },
+    TRANSFERRED: { text: '调监', type: 'primary' },
+    MEDICAL_PAROLE: { text: '保外就医', type: 'warning' }
   }
   return map[status] || { text: status, type: 'info' }
 }
 
+function getAreaName(areaId: number | null) {
+  if (!areaId) return '-'
+  const area = prisonAreaList.value.find(a => a.id === areaId)
+  return area?.areaName || '-'
+}
+
+function calculateAge(birthDate: string) {
+  if (!birthDate) return 0
+  const today = new Date()
+  const birth = new Date(birthDate)
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age
+}
+
+function formatSentence(months: number) {
+  if (!months) return '无期'
+  const years = Math.floor(months / 12)
+  const remainMonths = months % 12
+  if (years === 0) return `${remainMonths}个月`
+  if (remainMonths === 0) return `${years}年`
+  return `${years}年${remainMonths}个月`
+}
+
+function getRemainingDays(releaseDate: string) {
+  if (!releaseDate) return '无期'
+  const today = new Date()
+  const release = new Date(releaseDate)
+  const diff = Math.ceil((release.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  if (diff <= 0) return '已到期'
+  return `${diff}天`
+}
+
+async function fetchList() {
+  tableLoading.value = true
+  try {
+    const params: Record<string, any> = {
+      page: currentPage.value,
+      size: pageSize.value,
+      keyword: searchForm.keyword || undefined
+    }
+    if (searchForm.areaId) params.areaId = searchForm.areaId
+    if (searchForm.dangerLevel) params.dangerLevel = searchForm.dangerLevel
+    if (searchForm.status) params.status = searchForm.status
+    if (searchForm.gender) params.gender = searchForm.gender
+    if (searchForm.crimeType) params.crimeType = searchForm.crimeType
+    if (searchForm.minAge) params.minAge = searchForm.minAge
+    if (searchForm.maxAge) params.maxAge = searchForm.maxAge
+
+    const res = await post('/prisoners/search', params)
+    if (res.data.code === 200) {
+      const data = res.data.data
+      tableData.value = data.records || data.list || []
+      total.value = data.total || 0
+    }
+  } catch (e) {
+    console.error('获取服刑人员列表失败', e)
+  } finally {
+    tableLoading.value = false
+  }
+}
+
+async function fetchPrisonAreas() {
+  try {
+    const res = await get('/prison-areas/all')
+    if (res.data.code === 200) {
+      prisonAreaList.value = res.data.data || []
+    }
+  } catch (e) {
+    console.error('获取监区列表失败', e)
+  }
+}
+
+async function fetchPrisonerDetail(id: number) {
+  try {
+    const res = await get(`/prisoners/${id}`)
+    if (res.data.code === 200) {
+      return res.data.data
+    }
+  } catch (e) {
+    console.error('获取服刑人员详情失败', e)
+  }
+  return null
+}
+
 function handleSearch() {
   currentPage.value = 1
+  fetchList()
 }
 
 function handleReset() {
@@ -192,21 +250,44 @@ function handleReset() {
   searchForm.minAge = null
   searchForm.maxAge = null
   currentPage.value = 1
+  fetchList()
 }
 
-function handleViewDetail(row: Prisoner) {
-  selectedPrisoner.value = row
+async function handleViewDetail(row: Prisoner) {
+  const detail = await fetchPrisonerDetail(row.id)
+  if (detail) {
+    selectedPrisoner.value = detail
+  } else {
+    selectedPrisoner.value = row
+  }
   drawerVisible.value = true
 }
 
 function handleAdd() {
   dialogTitle.value = '新增服刑人员'
   Object.assign(form, {
-    id: 0, name: '', gender: '男', age: 0, prisonerNumber: '',
-    prisonArea: '', areaId: 0, cellNumber: '', crimeType: '', sentence: '',
-    sentenceTerm: 0, entryDate: '', releaseDate: '', status: '在押',
-    dangerLevel: 'LOW', idCard: '', nativePlace: '', educationLevel: '',
-    maritalStatus: '', occupation: '', healthStatus: '', remark: ''
+    id: 0,
+    name: '',
+    gender: '男',
+    prisonerNumber: '',
+    areaId: null,
+    cellId: null,
+    cellNumber: '',
+    crimeType: '',
+    sentenceTerm: 0,
+    entryDate: '',
+    releaseDate: '',
+    status: 'INCARCERATED',
+    dangerLevel: 'LOW',
+    idCard: '',
+    nativePlace: '',
+    birthDate: '',
+    educationLevel: '',
+    maritalStatus: '',
+    occupation: '',
+    healthStatus: '',
+    photoUrl: '',
+    remark: ''
   })
   dialogVisible.value = true
 }
@@ -219,9 +300,16 @@ function handleEdit(row: Prisoner) {
 
 function handleDelete(row: Prisoner) {
   ElMessageBox.confirm(`确定要删除服刑人员 "${row.name}" 吗？`, '确认删除', { type: 'warning' })
-    .then(() => {
-      tableData.value = tableData.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    .then(async () => {
+      try {
+        const res = await del(`/prisoners/${row.id}`)
+        if (res.data.code === 200) {
+          ElMessage.success('删除成功')
+          fetchList()
+        }
+      } catch (e) {
+        console.error('删除失败', e)
+      }
     })
 }
 
@@ -229,23 +317,30 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
   loading.value = true
-  if (form.id === 0) {
-    form.id = Math.max(...tableData.value.map((i) => i.id), 0) + 1
-    const area = prisonAreaList.find(a => a.id === form.areaId)
-    form.prisonArea = area?.areaName || ''
-    tableData.value.unshift({ ...form })
-    ElMessage.success('新增成功')
-  } else {
-    const idx = tableData.value.findIndex((i) => i.id === form.id)
-    if (idx > -1) {
-      const area = prisonAreaList.find(a => a.id === form.areaId)
-      form.prisonArea = area?.areaName || ''
-      tableData.value[idx] = { ...form }
+  try {
+    if (form.id === 0) {
+      const res = await post('/prisoners', form)
+      if (res.data.code === 200) {
+        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        fetchList()
+      }
+    } else {
+      const res = await put(`/prisoners/${form.id}`, form)
+      if (res.data.code === 200) {
+        ElMessage.success('更新成功')
+        dialogVisible.value = false
+        fetchList()
+        if (selectedPrisoner.value && selectedPrisoner.value.id === form.id) {
+          selectedPrisoner.value = { ...form } as Prisoner
+        }
+      }
     }
-    ElMessage.success('更新成功')
+  } catch (e) {
+    console.error('提交失败', e)
+  } finally {
+    loading.value = false
   }
-  dialogVisible.value = false
-  loading.value = false
 }
 
 function closeDrawer() {
@@ -253,24 +348,42 @@ function closeDrawer() {
   selectedPrisoner.value = null
 }
 
-function getRemainingDays(releaseDate: string) {
-  if (!releaseDate) return '无期'
-  const today = new Date()
-  const release = new Date(releaseDate)
-  const diff = Math.ceil((release.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  if (diff <= 0) return '已到期'
-  return `${diff}天`
+function handlePageChange(page: number) {
+  currentPage.value = page
+  fetchList()
 }
+
+function handleSizeChange(size: number) {
+  pageSize.value = size
+  currentPage.value = 1
+  fetchList()
+}
+
+function handleRefresh() {
+  fetchList()
+  ElMessage.success('已刷新')
+}
+
+onMounted(() => {
+  fetchPrisonAreas()
+  fetchList()
+})
 </script>
 
 <template>
   <div class="prisoner-list-page">
     <div class="page-header">
       <h2>服刑人员管理</h2>
-      <el-button type="primary" link @click="advancedFilterVisible = !advancedFilterVisible">
-        {{ advancedFilterVisible ? '收起筛选' : '高级筛选' }}
-        <el-icon class="ml-5px"><component :is="advancedFilterVisible ? 'ArrowUp' : 'ArrowDown'" /></el-icon>
-      </el-button>
+      <div class="header-actions">
+        <el-button type="primary" link @click="advancedFilterVisible = !advancedFilterVisible">
+          {{ advancedFilterVisible ? '收起筛选' : '高级筛选' }}
+          <el-icon class="ml-5px"><component :is="advancedFilterVisible ? 'ArrowUp' : 'ArrowDown'" /></el-icon>
+        </el-button>
+        <el-button type="primary" @click="handleRefresh">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
     </div>
 
     <div class="search-bar">
@@ -368,12 +481,8 @@ function getRemainingDays(releaseDate: string) {
       </div>
     </el-collapse-transition>
 
-    <div class="filter-summary" v-if="filteredData.length !== tableData.length">
-      <el-tag type="info">当前筛选条件下共 <b>{{ filteredData.length }}</b> 条记录</el-tag>
-    </div>
-
     <el-table
-      :data="pagedData"
+      :data="tableData"
       border
       stripe
       style="width: 100%"
@@ -383,10 +492,10 @@ function getRemainingDays(releaseDate: string) {
       <el-table-column type="expand" width="50">
         <template #default="{ row }">
           <div class="expand-info">
-            <div class="info-item"><span class="label">身份证号：</span>{{ row.idCard }}</div>
-            <div class="info-item"><span class="label">籍贯：</span>{{ row.nativePlace }}</div>
-            <div class="info-item"><span class="label">文化程度：</span>{{ row.educationLevel }}</div>
-            <div class="info-item"><span class="label">健康状况：</span>{{ row.healthStatus }}</div>
+            <div class="info-item"><span class="label">身份证号：</span>{{ row.idCard || '-' }}</div>
+            <div class="info-item"><span class="label">籍贯：</span>{{ row.nativePlace || '-' }}</div>
+            <div class="info-item"><span class="label">文化程度：</span>{{ row.educationLevel || '-' }}</div>
+            <div class="info-item"><span class="label">健康状况：</span>{{ row.healthStatus || '健康' }}</div>
             <div class="info-item"><span class="label">剩余刑期：</span>{{ getRemainingDays(row.releaseDate) }}</div>
             <div class="info-item"><span class="label">备注：</span>{{ row.remark || '无' }}</div>
           </div>
@@ -395,11 +504,23 @@ function getRemainingDays(releaseDate: string) {
       <el-table-column prop="prisonerNumber" label="编号" width="110" />
       <el-table-column prop="name" label="姓名" width="80" />
       <el-table-column prop="gender" label="性别" width="60" />
-      <el-table-column prop="age" label="年龄" width="60" />
-      <el-table-column prop="prisonArea" label="监区" width="70" />
+      <el-table-column label="年龄" width="60">
+        <template #default="{ row }">
+          {{ calculateAge(row.birthDate) || '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="监区" width="90">
+        <template #default="{ row }">
+          {{ getAreaName(row.areaId) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="cellNumber" label="监舍号" width="90" />
       <el-table-column prop="crimeType" label="罪名" width="100" />
-      <el-table-column prop="sentence" label="刑期" width="80" />
+      <el-table-column label="刑期" width="90">
+        <template #default="{ row }">
+          {{ formatSentence(row.sentenceTerm) }}
+        </template>
+      </el-table-column>
       <el-table-column label="危险等级" width="80">
         <template #default="{ row }">
           <el-tag :type="getDangerLevelTag(row.dangerLevel).type" size="small">
@@ -407,7 +528,15 @@ function getRemainingDays(releaseDate: string) {
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="70">
+      <el-table-column label="健康状态" width="100">
+        <template #default="{ row }">
+          <el-tag v-if="row.healthStatus && row.healthStatus !== '健康'" type="warning" size="small">
+            {{ row.healthStatus }}
+          </el-tag>
+          <span v-else class="health-normal">健康</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="getStatusTag(row.status).type" size="small">
             {{ getStatusTag(row.status).text }}
@@ -429,9 +558,11 @@ function getRemainingDays(releaseDate: string) {
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[5, 10, 20, 50]"
-        :total="filteredData.length"
+        :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         background
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
 
@@ -454,7 +585,7 @@ function getRemainingDays(releaseDate: string) {
               <el-tag :type="getDangerLevelTag(selectedPrisoner.dangerLevel).type" size="small">
                 {{ getDangerLevelTag(selectedPrisoner.dangerLevel).text }}
               </el-tag>
-              <el-tag type="info" size="small">{{ selectedPrisoner.prisonArea }}</el-tag>
+              <el-tag type="info" size="small">{{ getAreaName(selectedPrisoner.areaId) }}</el-tag>
             </div>
           </div>
         </div>
@@ -462,18 +593,23 @@ function getRemainingDays(releaseDate: string) {
         <el-descriptions :column="1" border size="default" class="detail-descriptions">
           <el-descriptions-item label="编号">{{ selectedPrisoner.prisonerNumber }}</el-descriptions-item>
           <el-descriptions-item label="性别">{{ selectedPrisoner.gender }}</el-descriptions-item>
-          <el-descriptions-item label="年龄">{{ selectedPrisoner.age }}岁</el-descriptions-item>
+          <el-descriptions-item label="年龄">{{ calculateAge(selectedPrisoner.birthDate) }}岁</el-descriptions-item>
           <el-descriptions-item label="身份证号">{{ selectedPrisoner.idCard }}</el-descriptions-item>
-          <el-descriptions-item label="籍贯">{{ selectedPrisoner.nativePlace }}</el-descriptions-item>
-          <el-descriptions-item label="文化程度">{{ selectedPrisoner.educationLevel }}</el-descriptions-item>
-          <el-descriptions-item label="婚姻状况">{{ selectedPrisoner.maritalStatus }}</el-descriptions-item>
+          <el-descriptions-item label="籍贯">{{ selectedPrisoner.nativePlace || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="文化程度">{{ selectedPrisoner.educationLevel || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="婚姻状况">{{ selectedPrisoner.maritalStatus || '-' }}</el-descriptions-item>
           <el-descriptions-item label="职业">{{ selectedPrisoner.occupation || '无' }}</el-descriptions-item>
-          <el-descriptions-item label="健康状况">{{ selectedPrisoner.healthStatus }}</el-descriptions-item>
-          <el-descriptions-item label="监区">{{ selectedPrisoner.prisonArea }}</el-descriptions-item>
-          <el-descriptions-item label="监舍号">{{ selectedPrisoner.cellNumber }}</el-descriptions-item>
-          <el-descriptions-item label="罪名">{{ selectedPrisoner.crimeType }}</el-descriptions-item>
-          <el-descriptions-item label="刑期">{{ selectedPrisoner.sentence }}</el-descriptions-item>
-          <el-descriptions-item label="入狱日期">{{ selectedPrisoner.entryDate }}</el-descriptions-item>
+          <el-descriptions-item label="健康状况">
+            <el-tag v-if="selectedPrisoner.healthStatus" type="warning" size="small">
+              {{ selectedPrisoner.healthStatus }}
+            </el-tag>
+            <span v-else>健康</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="监区">{{ getAreaName(selectedPrisoner.areaId) }}</el-descriptions-item>
+          <el-descriptions-item label="监舍号">{{ selectedPrisoner.cellNumber || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="罪名">{{ selectedPrisoner.crimeType || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="刑期">{{ formatSentence(selectedPrisoner.sentenceTerm) }}</el-descriptions-item>
+          <el-descriptions-item label="入狱日期">{{ selectedPrisoner.entryDate || '-' }}</el-descriptions-item>
           <el-descriptions-item label="释放日期">{{ selectedPrisoner.releaseDate || '无期徒刑' }}</el-descriptions-item>
           <el-descriptions-item label="剩余刑期">{{ getRemainingDays(selectedPrisoner.releaseDate) }}</el-descriptions-item>
         </el-descriptions>
@@ -509,16 +645,15 @@ function getRemainingDays(releaseDate: string) {
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="性别" prop="gender">
-              <el-select v-model="form.gender">
-                <el-option label="男" value="男" />
-                <el-option label="女" value="女" />
+            <el-form-item label="性别">
+              <el-select v-model="form.gender" style="width: 100%">
+                <el-option v-for="opt in genderOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="年龄" prop="age">
-              <el-input-number v-model="form.age" :min="18" :max="100" style="width: 100%" />
+            <el-form-item label="出生日期">
+              <el-date-picker v-model="form.birthDate" type="date" style="width: 100%" value-format="YYYY-MM-DD" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -560,33 +695,23 @@ function getRemainingDays(releaseDate: string) {
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="刑期">
-              <el-input v-model="form.sentence" />
+            <el-form-item label="刑期(月)">
+              <el-input-number v-model="form.sentenceTerm" :min="0" :max="999" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="危险等级">
-              <el-select v-model="form.dangerLevel">
-                <el-option
-                  v-for="item in dangerLevelOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
+              <el-select v-model="form.dangerLevel" style="width: 100%">
+                <el-option v-for="opt in dangerLevelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态">
-              <el-select v-model="form.status">
-                <el-option
-                  v-for="item in statusOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
+              <el-select v-model="form.status" style="width: 100%">
+                <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -594,29 +719,36 @@ function getRemainingDays(releaseDate: string) {
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="入狱日期">
-              <el-date-picker
-                v-model="form.entryDate"
-                type="date"
-                placeholder="选择日期"
-                style="width: 100%"
-                value-format="YYYY-MM-DD"
-              />
+              <el-date-picker v-model="form.entryDate" type="date" style="width: 100%" value-format="YYYY-MM-DD" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="释放日期">
-              <el-date-picker
-                v-model="form.releaseDate"
-                type="date"
-                placeholder="选择日期（无期可留空）"
-                style="width: 100%"
-                value-format="YYYY-MM-DD"
-              />
+              <el-date-picker v-model="form.releaseDate" type="date" style="width: 100%" value-format="YYYY-MM-DD" />
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="文化程度">
+              <el-select v-model="form.educationLevel" style="width: 100%" clearable>
+                <el-option v-for="opt in educationOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="婚姻状况">
+              <el-select v-model="form.maritalStatus" style="width: 100%" clearable>
+                <el-option v-for="opt in maritalOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="职业">
+          <el-input v-model="form.occupation" />
+        </el-form-item>
         <el-form-item label="健康状况">
-          <el-input v-model="form.healthStatus" />
+          <el-input v-model="form.healthStatus" placeholder="如：高血压、糖尿病等" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="特殊情况说明" />
@@ -648,6 +780,12 @@ function getRemainingDays(releaseDate: string) {
   font-size: 18px;
   color: #303133;
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .ml-5px {
@@ -682,10 +820,6 @@ function getRemainingDays(releaseDate: string) {
   color: #909399;
 }
 
-.filter-summary {
-  margin-bottom: 12px;
-}
-
 .expand-info {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -700,6 +834,11 @@ function getRemainingDays(releaseDate: string) {
 
 .info-item .label {
   color: #909399;
+}
+
+.health-normal {
+  color: #67c23a;
+  font-size: 12px;
 }
 
 .pagination {

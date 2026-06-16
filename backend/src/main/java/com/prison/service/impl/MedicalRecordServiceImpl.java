@@ -1,6 +1,7 @@
 package com.prison.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.prison.config.BusinessException;
@@ -421,8 +422,15 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
         String newHealthStatus = calculateHealthStatus(prisonerId);
         String oldHealthStatus = prisoner.getHealthStatus();
         if (!Objects.equals(oldHealthStatus, newHealthStatus)) {
-            prisoner.setHealthStatus(newHealthStatus);
-            prisonerService.updateById(prisoner);
+            if (newHealthStatus == null) {
+                LambdaUpdateWrapper<Prisoner> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(Prisoner::getId, prisonerId)
+                        .set(Prisoner::getHealthStatus, null);
+                prisonerService.update(wrapper);
+            } else {
+                prisoner.setHealthStatus(newHealthStatus);
+                prisonerService.updateById(prisoner);
+            }
             sysLogService.logSuccess(
                     SysLogModule.PRISONER,
                     SysLogAction.UPDATE,
