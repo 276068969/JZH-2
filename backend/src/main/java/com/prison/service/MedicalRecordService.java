@@ -13,4 +13,14 @@ public interface MedicalRecordService extends IService<MedicalRecord> {
     MedicalTimelineVO getTimelineByPrisonerId(Long prisonerId);
 
     List<MedicalRecord> listByPrisonerId(Long prisonerId);
+
+    void createMedicalRecord(MedicalRecord record);
+
+    void updateMedicalRecord(Long id, MedicalRecord record);
+
+    void deleteMedicalRecord(Long id);
+
+    String calculateHealthStatus(Long prisonerId);
+
+    void updatePrisonerHealthStatus(Long prisonerId);
 }

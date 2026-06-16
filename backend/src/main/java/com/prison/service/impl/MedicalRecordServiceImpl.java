@@ -3,19 +3,25 @@ package com.prison.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.prison.config.BusinessException;
 import com.prison.entity.Cell;
 import com.prison.entity.MedicalRecord;
 import com.prison.entity.PrisonArea;
 import com.prison.entity.Prisoner;
+import com.prison.enums.SysLogAction;
+import com.prison.enums.SysLogModule;
 import com.prison.mapper.CellMapper;
 import com.prison.mapper.MedicalRecordMapper;
 import com.prison.mapper.PrisonAreaMapper;
 import com.prison.mapper.PrisonerMapper;
 import com.prison.service.MedicalRecordService;
+import com.prison.service.PrisonerService;
+import com.prison.service.SysLogService;
 import com.prison.vo.MedicalTimelineNodeVO;
 import com.prison.vo.MedicalTimelineVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -28,6 +34,8 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
     private final PrisonerMapper prisonerMapper;
     private final PrisonAreaMapper prisonAreaMapper;
     private final CellMapper cellMapper;
+    private final PrisonerService prisonerService;
+    private final SysLogService sysLogService;
 
     private static final Map<String, String> MEDICAL_TYPE_LABELS = Map.of(
             "PHYSICAL", "体检",
@@ -271,5 +279,159 @@ public class MedicalRecordServiceImpl extends ServiceImpl<MedicalRecordMapper, M
         node.setFollowUpTagType(FOLLOW_UP_TAG_TYPES.get("COMPLETED"));
 
         return node;
+    }
+
+    @Override
+    @Transactional
+    public void createMedicalRecord(MedicalRecord record) {
+        Prisoner prisoner = prisonerService.getById(record.getPrisonerId());
+        if (prisoner == null) {
+            throw new BusinessException("服刑人员不存在");
+        }
+        save(record);
+        updatePrisonerHealthStatus(record.getPrisonerId());
+        sysLogService.logSuccess(
+                SysLogModule.MEDICAL,
+                SysLogAction.CREATE,
+                "新增医疗记录：服刑人员" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "），就诊日期：" + record.getRecordDate(),
+                "MEDICAL_RECORD",
+                record.getId(),
+                prisoner.getName()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void updateMedicalRecord(Long id, MedicalRecord record) {
+        MedicalRecord existing = getById(id);
+        if (existing == null) {
+            throw new BusinessException("医疗记录不存在");
+        }
+        Prisoner prisoner = prisonerService.getById(record.getPrisonerId());
+        if (prisoner == null) {
+            throw new BusinessException("服刑人员不存在");
+        }
+        record.setId(id);
+        updateById(record);
+        if (!existing.getPrisonerId().equals(record.getPrisonerId())) {
+            updatePrisonerHealthStatus(existing.getPrisonerId());
+        }
+        updatePrisonerHealthStatus(record.getPrisonerId());
+        sysLogService.logSuccess(
+                SysLogModule.MEDICAL,
+                SysLogAction.UPDATE,
+                "更新医疗记录：服刑人员" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "），就诊日期：" + record.getRecordDate(),
+                "MEDICAL_RECORD",
+                id,
+                prisoner.getName()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void deleteMedicalRecord(Long id) {
+        MedicalRecord existing = getById(id);
+        if (existing == null) {
+            throw new BusinessException("医疗记录不存在");
+        }
+        Prisoner prisoner = prisonerService.getById(existing.getPrisonerId());
+        removeById(id);
+        if (prisoner != null) {
+            updatePrisonerHealthStatus(existing.getPrisonerId());
+            sysLogService.logSuccess(
+                    SysLogModule.MEDICAL,
+                    SysLogAction.DELETE,
+                    "删除医疗记录：服刑人员" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "），就诊日期：" + existing.getRecordDate(),
+                    "MEDICAL_RECORD",
+                    id,
+                    prisoner.getName()
+            );
+        }
+    }
+
+    @Override
+    public String calculateHealthStatus(Long prisonerId) {
+        List<MedicalRecord> records = listByPrisonerId(prisonerId);
+        if (records.isEmpty()) {
+            return null;
+        }
+
+        boolean hasDeceased = false;
+        boolean hasEmergencyTreating = false;
+        boolean hasHospitalizationTreating = false;
+        boolean hasTreating = false;
+        boolean hasEmergency = false;
+        boolean hasHospitalization = false;
+        boolean hasStable = false;
+        boolean hasRecovered = false;
+        boolean hasTransferred = false;
+
+        for (MedicalRecord record : records) {
+            String result = record.getResult();
+            String medicalType = record.getMedicalType();
+
+            if ("DECEASED".equals(result)) {
+                hasDeceased = true;
+            }
+            if ("EMERGENCY".equals(medicalType) && "TREATING".equals(result)) {
+                hasEmergencyTreating = true;
+            }
+            if ("HOSPITALIZATION".equals(medicalType) && "TREATING".equals(result)) {
+                hasHospitalizationTreating = true;
+            }
+            if ("TREATING".equals(result)) {
+                hasTreating = true;
+            }
+            if ("EMERGENCY".equals(medicalType)) {
+                hasEmergency = true;
+            }
+            if ("HOSPITALIZATION".equals(medicalType)) {
+                hasHospitalization = true;
+            }
+            if ("STABLE".equals(result)) {
+                hasStable = true;
+            }
+            if ("RECOVERED".equals(result) || "CURED".equals(result)) {
+                hasRecovered = true;
+            }
+            if ("TRANSFERRED".equals(result)) {
+                hasTransferred = true;
+            }
+        }
+
+        if (hasDeceased) return "已故";
+        if (hasEmergencyTreating) return "急诊治疗中";
+        if (hasHospitalizationTreating) return "住院治疗中";
+        if (hasTreating) return "持续治疗中";
+        if (hasEmergency) return "曾急诊";
+        if (hasHospitalization) return "曾住院";
+        if (hasStable) return "病情稳定";
+        if (hasRecovered) return "健康";
+        if (hasTransferred) return "已转院";
+
+        return null;
+    }
+
+    @Override
+    public void updatePrisonerHealthStatus(Long prisonerId) {
+        Prisoner prisoner = prisonerService.getById(prisonerId);
+        if (prisoner == null) {
+            return;
+        }
+        String newHealthStatus = calculateHealthStatus(prisonerId);
+        String oldHealthStatus = prisoner.getHealthStatus();
+        if (!Objects.equals(oldHealthStatus, newHealthStatus)) {
+            prisoner.setHealthStatus(newHealthStatus);
+            prisonerService.updateById(prisoner);
+            sysLogService.logSuccess(
+                    SysLogModule.PRISONER,
+                    SysLogAction.UPDATE,
+                    "更新服刑人员健康状态：" + prisoner.getName() + "（编号：" + prisoner.getPrisonerNumber() + "），" +
+                            (oldHealthStatus != null ? oldHealthStatus : "无") + " → " + (newHealthStatus != null ? newHealthStatus : "无"),
+                    "PRISONER",
+                    prisonerId,
+                    prisoner.getName()
+            );
+        }
     }
 }

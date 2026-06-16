@@ -57,7 +57,7 @@ public class MedicalRecordController {
     public Result<?> create(@Valid @RequestBody MedicalRecordDTO dto) {
         MedicalRecord record = new MedicalRecord();
         BeanUtils.copyProperties(dto, record);
-        medicalRecordService.save(record);
+        medicalRecordService.createMedicalRecord(record);
         return Result.success("创建成功");
     }
 
@@ -66,15 +66,14 @@ public class MedicalRecordController {
     public Result<?> update(@PathVariable Long id, @Valid @RequestBody MedicalRecordDTO dto) {
         MedicalRecord record = new MedicalRecord();
         BeanUtils.copyProperties(dto, record);
-        record.setId(id);
-        medicalRecordService.updateById(record);
+        medicalRecordService.updateMedicalRecord(id, record);
         return Result.success("更新成功");
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public Result<?> delete(@PathVariable Long id) {
-        medicalRecordService.removeById(id);
+        medicalRecordService.deleteMedicalRecord(id);
         return Result.success("删除成功");
     }
 }
