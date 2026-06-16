@@ -26,4 +26,8 @@ public interface PrisonAreaService extends IService<PrisonArea> {
     void incrementPopulation(Long areaId);
 
     void decrementPopulation(Long areaId);
+
+    com.prison.vo.CapacityWarningVO getCapacityWarnings();
+
+    com.prison.vo.CapacityWarningVO getCapacityWarningsByAreaId(Long areaId);
 }

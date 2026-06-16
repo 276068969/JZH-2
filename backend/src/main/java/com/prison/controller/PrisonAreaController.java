@@ -4,6 +4,7 @@ import com.prison.Result;
 import com.prison.dto.PrisonAreaDTO;
 import com.prison.entity.PrisonArea;
 import com.prison.service.PrisonAreaService;
+import com.prison.vo.CapacityWarningVO;
 import com.prison.vo.PrisonAreaStatsVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,10 +41,22 @@ public class PrisonAreaController {
         return Result.success(prisonAreaService.listAreaStats());
     }
 
+    @GetMapping("/warnings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<CapacityWarningVO> warnings() {
+        return Result.success(prisonAreaService.getCapacityWarnings());
+    }
+
     @GetMapping("/{id}/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
     public Result<PrisonAreaStatsVO> statsById(@PathVariable Long id) {
         return Result.success(prisonAreaService.getAreaStatsById(id));
+    }
+
+    @GetMapping("/{id}/warnings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<CapacityWarningVO> warningsById(@PathVariable Long id) {
+        return Result.success(prisonAreaService.getCapacityWarningsByAreaId(id));
     }
 
     @GetMapping("/{id}")

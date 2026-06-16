@@ -4,6 +4,8 @@ import com.prison.Result;
 import com.prison.dto.CellDTO;
 import com.prison.entity.Cell;
 import com.prison.service.CellService;
+import com.prison.service.PrisonAreaService;
+import com.prison.vo.CapacityWarningVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -18,6 +20,7 @@ import java.util.List;
 public class CellController {
 
     private final CellService cellService;
+    private final PrisonAreaService prisonAreaService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
@@ -83,5 +86,17 @@ public class CellController {
     public Result<?> syncAllOccupancy() {
         cellService.syncAllOccupancy();
         return Result.success("全量同步完成");
+    }
+
+    @GetMapping("/warnings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<CapacityWarningVO> warnings() {
+        return Result.success(prisonAreaService.getCapacityWarnings());
+    }
+
+    @GetMapping("/by-area/{areaId}/warnings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'GUARD', 'VIEWER')")
+    public Result<CapacityWarningVO> warningsByAreaId(@PathVariable Long areaId) {
+        return Result.success(prisonAreaService.getCapacityWarningsByAreaId(areaId));
     }
 }
